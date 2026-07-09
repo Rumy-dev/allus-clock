@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { AppSnapshot } from '../../shared/ipc-contract';
 import { appStore } from '../store/appStore';
 import { authManager } from '../auth/authManager';
+import * as timerEngine from '../store/timerEngine';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -38,6 +39,78 @@ function loadPage(win: BrowserWindow, page: string): void {
   // assim que ela terminar de carregar, pra nunca ficar "vazia".
   win.webContents.on('did-finish-load', () => {
     win.webContents.send('state:update', appStore.getSnapshot());
+  });
+  attachWindowShortcuts(win);
+}
+
+// Atalhos de produtividade (abrir centrais, DevTools, controlar o timer).
+// Usamos before-input-event (escopado à janela) em vez de globalShortcut:
+// globalShortcut sequestra a combinação em nível de SISTEMA OPERACIONAL
+// inteiro, mesmo com outro app em foco — no macOS isso quebrava atalhos
+// nativos usadíssimos (Cmd+H esconder app, Cmd+F buscar, Cmd+B negrito,
+// Cmd+T nova aba) sempre que o Allus Clock estava rodando em segundo
+// plano, o que é o tempo todo (ele vive na bandeja). before-input-event só
+// dispara quando a própria janela do Allus Clock está em foco.
+function attachWindowShortcuts(win: BrowserWindow): void {
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    const mod = input.control || input.meta;
+
+    if (input.key === 'F12') {
+      win.webContents.toggleDevTools();
+      event.preventDefault();
+      return;
+    }
+
+    if (!mod) return;
+
+    switch (input.key.toLowerCase()) {
+      case 't':
+        toggleTaskCenter();
+        event.preventDefault();
+        break;
+      case 'h':
+        toggleTimeCenter();
+        event.preventDefault();
+        break;
+      case 'd':
+        toggleDashboard();
+        event.preventDefault();
+        break;
+      case 'p': {
+        const authState = authManager.getState();
+        if (authState.status === 'signedIn' && authState.profile.role === 'admin') {
+          togglePulse();
+        }
+        event.preventDefault();
+        break;
+      }
+      case 'f': {
+        const state = appStore.getSnapshot();
+        if (!state.activeSession) {
+          const recentTask = state.recentTasks[0];
+          if (recentTask) {
+            timerEngine
+              .focusTask(recentTask.taskId, null, recentTask.taskTitle)
+              .then(() => timerEngine.startFocus(recentTask.taskTitle))
+              .catch((err) => console.error('[shortcut] Cmd/Ctrl+F falhou', err));
+          }
+        } else if (state.activeSession.status !== 'Ativo') {
+          timerEngine.resume().catch((err) => console.error('[shortcut] Cmd/Ctrl+F resume falhou', err));
+        }
+        event.preventDefault();
+        break;
+      }
+      case 'b': {
+        const state = appStore.getSnapshot();
+        if (state.activeSession) {
+          const action = state.activeSession.cycleKind === 'Foco' ? timerEngine.skipToBreak() : timerEngine.skipToFocus();
+          action.catch((err) => console.error('[shortcut] Cmd/Ctrl+B falhou', err));
+        }
+        event.preventDefault();
+        break;
+      }
+    }
   });
 }
 

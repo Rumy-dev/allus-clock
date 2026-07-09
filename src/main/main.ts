@@ -1,4 +1,4 @@
-import { app, globalShortcut, BrowserWindow } from 'electron';
+import { app } from 'electron';
 import started from 'electron-squirrel-startup';
 import { authManager } from './auth/authManager';
 import { appStore } from './store/appStore';
@@ -86,55 +86,10 @@ app.whenReady().then(async () => {
     windowManager.showLogin();
   }
 
-  // Registrar atalhos globais de teclado
-  // F12: abrir DevTools
-  globalShortcut.register('F12', () => {
-    const focusedWindow = BrowserWindow.getFocusedWindow();
-    if (focusedWindow) {
-      focusedWindow.webContents.toggleDevTools();
-    }
-  });
-
-  // ESC: fechar o painel flutuante (o modal de ciclo é fechado pelo renderer)
-  globalShortcut.register('Escape', () => {
-    const focusedWindow = BrowserWindow.getFocusedWindow();
-    if (focusedWindow && focusedWindow.isVisible() && focusedWindow.webContents.getTitle().includes('floating')) {
-      // Se é o painel flutuante, enviar mensagem pra renderer tentar fechar modal primeiro
-      focusedWindow.webContents.send('key:escape', {});
-    }
-  });
-
-  globalShortcut.register('CmdOrCtrl+T', () => windowManager.toggleTaskCenter());
-  globalShortcut.register('CmdOrCtrl+H', () => windowManager.toggleTimeCenter());
-  globalShortcut.register('CmdOrCtrl+D', () => windowManager.toggleDashboard());
-  globalShortcut.register('CmdOrCtrl+P', () => {
-    const authState = authManager.getState();
-    if (authState.status === 'signedIn' && authState.profile.role === 'admin') {
-      windowManager.togglePulse();
-    }
-  });
-  globalShortcut.register('CmdOrCtrl+F', async () => {
-    const state = appStore.getSnapshot();
-    if (!state.activeSession) {
-      const recentTask = state.recentTasks[0];
-      if (recentTask) {
-        await timerEngine.focusTask(recentTask.taskId, null, recentTask.taskTitle);
-        await timerEngine.startFocus(recentTask.taskTitle);
-      }
-    } else if (state.activeSession.status !== 'Ativo') {
-      await timerEngine.resume();
-    }
-  });
-  globalShortcut.register('CmdOrCtrl+B', async () => {
-    const state = appStore.getSnapshot();
-    if (state.activeSession) {
-      if (state.activeSession.cycleKind === 'Foco') {
-        await timerEngine.skipToBreak();
-      } else {
-        await timerEngine.skipToFocus();
-      }
-    }
-  });
+  // Atalhos de teclado (F12, Cmd/Ctrl+T/H/D/P/F/B) são escopados por janela
+  // em windowManager.attachWindowShortcuts — ver comentário lá sobre por que
+  // não usamos globalShortcut (sequestraria atalhos do sistema operacional
+  // inteiro, ex: Cmd+H de esconder app no macOS).
 });
 
 app.on('activate', () => {

@@ -15,6 +15,7 @@ export function useKeyboardShortcuts({ onPlayPause, onEscape }: ShortcutOptions)
   useEffect(() => {
     function handler(e: KeyboardEvent) {
       if (e.key === 'Escape' && onEscape) {
+        e.preventDefault();
         onEscape();
         return;
       }

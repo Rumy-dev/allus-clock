@@ -88,13 +88,13 @@ export function TaskModeSelector({ task, recentTasks, onSelectTask, onClose, car
             {(Object.keys(POMO_MODES) as PomoMode[]).map((mode) => (
               <button
                 key={mode}
-                onClick={async () => {
-                  await invokeAction('timer:setMode', { mode });
-                  await invokeAction('task:focus', {
+                onClick={() => {
+                  invokeAction('timer:setMode', { mode }).catch(console.error);
+                  invokeAction('task:focus', {
                     taskId: task.taskId,
                     subtaskId: null,
                     title: task.title,
-                  });
+                  }).catch(console.error);
                   onClose();
                 }}
                 style={{

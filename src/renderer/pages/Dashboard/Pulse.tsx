@@ -299,7 +299,29 @@ interface TeamMemberRowProps {
 
 function TeamMemberRow({ member }: TeamMemberRowProps) {
   const [highlighted, setHighlighted] = useState(false);
+  const [liveElapsedSeconds, setLiveElapsedSeconds] = useState(member.elapsedSeconds);
   const prevStatusRef = useRef(member.status);
+
+  // Recalcula o tempo ao vivo a cada segundo quando status === 'Ativo'
+  useEffect(() => {
+    // Se passou para Ativo, reseta o base elapsed e syncedAt
+    if (member.status === 'Ativo') {
+      const syncedAtMs = member.syncedAt ? new Date(member.syncedAt).getTime() : Date.now();
+      const nowMs = Date.now();
+      const elapsedSinceSyncMs = Math.max(0, nowMs - syncedAtMs);
+      const baseLiveElapsed = member.elapsedSeconds + Math.floor(elapsedSinceSyncMs / 1000);
+      setLiveElapsedSeconds(baseLiveElapsed);
+
+      const interval = setInterval(() => {
+        setLiveElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      // Se pausado/offline, usa o elapsed do servidor como congelado
+      setLiveElapsedSeconds(member.elapsedSeconds);
+    }
+  }, [member.status, member.elapsedSeconds, member.syncedAt]);
 
   useEffect(() => {
     if (prevStatusRef.current !== 'offline' && member.status === 'Concluído') {
@@ -315,7 +337,7 @@ function TeamMemberRow({ member }: TeamMemberRowProps) {
 
   let displayTime: string;
   if (member.status !== 'offline') {
-    displayTime = `${formatDuration(member.elapsedSeconds)} / ${formatDuration(member.plannedSeconds)}`;
+    displayTime = `${formatDuration(liveElapsedSeconds)} / ${formatDuration(member.plannedSeconds)}`;
   } else {
     displayTime = '—';
   }

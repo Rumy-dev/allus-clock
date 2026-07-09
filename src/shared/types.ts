@@ -137,6 +137,7 @@ export interface PomoSession {
   startedAt: string;
   endedAt: string | null;
   activeTaskLogId: string | null;
+  syncedAt?: string; // ISO 8601, quando foi sincronizado com o Supabase
 }
 
 export interface PomoTaskLog {
@@ -226,6 +227,7 @@ export interface PulseTeamMember {
   plannedSeconds: number; // tempo planejado da sessão (ou 0 se offline)
   lastActivityAt: string | null; // ISO 8601, mais recente started_at deste usuário
   todayTotalSeconds: number; // horas acumuladas hoje (de task_logs)
+  syncedAt?: string; // ISO 8601, quando o tempo foi sincronizado com o servidor (para calcular ao vivo)
 }
 
 export interface PulseProjectBudget {

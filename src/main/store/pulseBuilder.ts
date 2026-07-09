@@ -29,22 +29,44 @@ export async function queryPulse(): Promise<PulseResult> {
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
-  const yesterdayStart = startOfDay(new Date(now.getTime() - 24 * 3600 * 1000));
-  const yesterdayEnd = endOfDay(new Date(now.getTime() - 24 * 3600 * 1000));
   const monthStart = startOfMonth(now);
   const weekStart = sevenDaysAgo(now);
 
-  // 1. Sessões ativas/pausadas (live status)
-  const { data: activeSessions, error: sessionsError } = await supabase
-    .from('sessions')
-    .select('*, profiles(full_name)')
-    .in('status', ['Ativo', 'Pausado'])
-    .order('started_at', { ascending: false });
+  // Paraleliza as queries independentes: ativas, perfis, today, month para orçamento
+  const [
+    { data: activeSessions, error: sessionsError },
+    { data: allProfiles, error: profilesError },
+    { data: todayTaskLogs, error: todayLogsError },
+    { data: monthTaskLogs, error: monthLogsError },
+  ] = await Promise.all([
+    supabase
+      .from('sessions')
+      .select('*, profiles(full_name)')
+      .in('status', ['Ativo', 'Pausado'])
+      .order('started_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('id, full_name')
+      .order('full_name'),
+    supabase
+      .from('task_logs')
+      .select('id, user_id, elapsed_seconds, task_id, project_id, client_id, task_title, session_id, started_at')
+      .gte('started_at', todayStart)
+      .lte('started_at', todayEnd),
+    supabase
+      .from('task_logs')
+      .select('project_id, elapsed_seconds')
+      .gte('started_at', monthStart)
+      .lte('started_at', todayEnd),
+  ]);
 
   if (sessionsError) {
     console.error('[pulseBuilder] erro ao carregar sessões ativas', sessionsError);
     throw new Error(sessionsError.message);
   }
+  if (profilesError) throw new Error(profilesError.message);
+  if (todayLogsError) throw new Error(todayLogsError.message);
+  if (monthLogsError) throw new Error(monthLogsError.message);
 
   // Mapeia sessões por usuário
   const sessionMap = new Map<string, PomoSession>();
@@ -54,51 +76,7 @@ export async function queryPulse(): Promise<PulseResult> {
     }
   }
 
-  // 2. Todos os usuários (para incluir offline)
-  const { data: allProfiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .order('full_name');
-
-  if (profilesError) throw new Error(profilesError.message);
-
-  // 3. Task logs de hoje para total de horas por pessoa
-  const { data: todayTaskLogs, error: todayLogsError } = await supabase
-    .from('task_logs')
-    .select('id, user_id, elapsed_seconds, task_id, project_id, client_id, task_title, session_id, started_at')
-    .gte('started_at', todayStart)
-    .lte('started_at', todayEnd);
-
-  if (todayLogsError) throw new Error(todayLogsError.message);
-
-  // 3b. Task logs de ontem para comparação
-  const { data: yesterdayTaskLogs, error: yesterdayLogsError } = await supabase
-    .from('task_logs')
-    .select('elapsed_seconds')
-    .gte('started_at', yesterdayStart)
-    .lte('started_at', yesterdayEnd);
-
-  if (yesterdayLogsError) throw new Error(yesterdayLogsError.message);
-
-  // 4. Task logs do mês para radar de orçamento
-  const { data: monthTaskLogs, error: monthLogsError } = await supabase
-    .from('task_logs')
-    .select('project_id, elapsed_seconds')
-    .gte('started_at', monthStart)
-    .lte('started_at', todayEnd);
-
-  if (monthLogsError) throw new Error(monthLogsError.message);
-
-  // 5. Task logs da semana para insights
-  const { data: weekTaskLogs, error: weekLogsError } = await supabase
-    .from('task_logs')
-    .select('client_id, elapsed_seconds, session_id')
-    .gte('started_at', weekStart)
-    .lte('started_at', todayEnd);
-
-  if (weekLogsError) throw new Error(weekLogsError.message);
-
-  // 6. Busca clientes e projetos para lookup de nomes
+  // Busca clientes e projetos para lookup de nomes
   const snapshot = appStore.getSnapshot();
   const clientMap = new Map(snapshot.clients.map((c) => [c.id, c.name]));
   const projectMap = new Map(snapshot.projects.map((p) => [p.id, p.name]));
@@ -156,6 +134,7 @@ export async function queryPulse(): Promise<PulseResult> {
       plannedSeconds: session?.plannedSeconds ?? 0,
       lastActivityAt,
       todayTotalSeconds: todaySeconds,
+      syncedAt: session?.syncedAt,
     });
   }
 
@@ -184,44 +163,39 @@ export async function queryPulse(): Promise<PulseResult> {
     }
   }
 
-  // === INSIGHTS ===
-  const teamTodaySeconds = todayTaskLogs?.reduce((sum, log) => sum + (log.elapsed_seconds ?? 0), 0) ?? 0;
-  const teamFocusingCount = activeSessions?.filter((s) => s.status === 'Ativo').length ?? 0;
-
-  // Sem classificação (sem client_id ou project_id)
-  const unclassifiedSeconds = todayTaskLogs
-    ?.filter((log) => !log.client_id || !log.project_id)
-    .reduce((sum, log) => sum + (log.elapsed_seconds ?? 0), 0) ?? 0;
-
-  // Cliente com maior consumo da semana
-  const weekClientMap = new Map<string, number>();
-  for (const log of weekTaskLogs ?? []) {
-    if (log.client_id) {
-      weekClientMap.set(log.client_id, (weekClientMap.get(log.client_id) ?? 0) + (log.elapsed_seconds ?? 0));
-    }
+  // === INSIGHTS via RPC ===
+  const { data: totalsData, error: totalsError } = await supabase.rpc('pulse_team_totals');
+  if (totalsError) {
+    console.warn('[pulseBuilder] erro ao chamar RPC pulse_team_totals, usando fallback local', totalsError);
   }
-  const topClientSeconds = Math.max(...Array.from(weekClientMap.values()), 0) || 0;
-  const weekTotal = weekTaskLogs?.reduce((sum, log) => sum + (log.elapsed_seconds ?? 0), 0) ?? 0;
-  const topClientPct = weekTotal > 0 ? Math.round((topClientSeconds / weekTotal) * 100) : 0;
 
-  // Maior bloco de foco contínuo hoje
-  const { data: sessionsToday, error: sessionsTodayError } = await supabase
-    .from('sessions')
-    .select('elapsed_seconds')
-    .eq('cycle_kind', 'Foco')
-    .gte('started_at', todayStart)
-    .lte('started_at', todayEnd);
+  let teamTodaySeconds = 0;
+  let unclassifiedSeconds = 0;
+  let longestBlockSeconds = 0;
+  let teamYesterdaySeconds = 0;
+  let topClientPct = 0;
 
-  if (sessionsTodayError) throw new Error(sessionsTodayError.message);
+  if (totalsData) {
+    teamTodaySeconds = totalsData.teamTodaySeconds ?? 0;
+    unclassifiedSeconds = totalsData.unclassifiedSeconds ?? 0;
+    longestBlockSeconds = totalsData.longestBlockSeconds ?? 0;
+    teamYesterdaySeconds = totalsData.teamYesterdaySeconds ?? 0;
+    topClientPct = totalsData.topClientPct ?? 0;
+  } else {
+    // Fallback se RPC falhar: cálculo local (mantém compatibilidade)
+    teamTodaySeconds = todayTaskLogs?.reduce((sum, log) => sum + (log.elapsed_seconds ?? 0), 0) ?? 0;
+    unclassifiedSeconds = todayTaskLogs
+      ?.filter((log) => !log.client_id || !log.project_id)
+      .reduce((sum, log) => sum + (log.elapsed_seconds ?? 0), 0) ?? 0;
+  }
 
-  const longestBlockSeconds = Math.max(...(sessionsToday?.map((s) => s.elapsed_seconds ?? 0) ?? [0]), 0);
+  const teamFocusingCount = activeSessions?.filter((s) => s.status === 'Ativo').length ?? 0;
 
   // Daily goal %: assume 8h/dia como meta padrão
   const DAILY_GOAL_SECONDS = 8 * 3600;
   const dailyGoalPct = Math.round((teamTodaySeconds / DAILY_GOAL_SECONDS) * 100);
 
   // Hoje vs. ontem
-  const teamYesterdaySeconds = yesterdayTaskLogs?.reduce((sum, log) => sum + (log.elapsed_seconds ?? 0), 0) ?? 0;
   const todayVsYesterdayPct = teamYesterdaySeconds > 0
     ? Math.round(((teamTodaySeconds - teamYesterdaySeconds) / teamYesterdaySeconds) * 100)
     : 0;

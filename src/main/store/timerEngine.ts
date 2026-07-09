@@ -6,12 +6,11 @@ import * as taskStore from './taskStore';
 import { AVULSO_PROJECT_ID } from './taskStore';
 import { POMO_MODES, displayPath } from '../../shared/types';
 import type { PomoMode, PomoSession, PomoTaskLog } from '../../shared/types';
-
-const FLUSH_INTERVAL_TICKS = 15;
+import { randomUUID } from 'crypto';
 
 let tickHandle: ReturnType<typeof setInterval> | null = null;
-let ticksSinceFlush = 0;
 let pendingCarryOverTitle: { taskId: string | null; subtaskId: string | null; title: string } | null = null;
+let pendingInserts: Array<{ type: 'session' | 'task_log'; payload: any }> = [];
 
 function currentUserId(): string {
   const state = authManager.getState();
@@ -34,7 +33,6 @@ function currentDisplayLabel(session: PomoSession, logs: PomoTaskLog[]): string 
 
 function startTicker(): void {
   stopTicker();
-  ticksSinceFlush = 0;
   tickHandle = setInterval(tick, 1000);
 }
 
@@ -43,15 +41,11 @@ function stopTicker(): void {
   tickHandle = null;
 }
 
-// Sempre gravamos o TOTAL acumulado (não deltas), então uma falha de rede
-// aqui não perde dado — só atrasa a gravação até o próximo tick/flush ou
-// até a reconexão (ver taskStore.subscribeRealtime + forceFlush abaixo).
-// Por isso engolimos o erro em vez de propagar (não queremos que uma
-// queda de internet derrube o loop do timer).
-async function persistSession(session: PomoSession, opts: { immediate?: boolean } = {}): Promise<void> {
-  ticksSinceFlush += 1;
-  if (!opts.immediate && ticksSinceFlush < FLUSH_INTERVAL_TICKS) return;
-  ticksSinceFlush = 0;
+// Persiste atualizações de sessão (elapsed_seconds, status, etc.).
+// Sempre grava o TOTAL acumulado (não deltas), então uma falha de rede
+// aqui não perde dado — só atrasa a gravação até a reconexão.
+// Erros são engolidos para não travar o timer.
+async function persistSession(session: PomoSession): Promise<void> {
   try {
     await supabase
       .from('sessions')
@@ -60,6 +54,7 @@ async function persistSession(session: PomoSession, opts: { immediate?: boolean 
         status: session.status,
         ended_at: session.endedAt,
         active_task_log_id: session.activeTaskLogId,
+        synced_at: new Date().toISOString(),
       })
       .eq('id', session.id);
   } catch (err) {
@@ -67,8 +62,7 @@ async function persistSession(session: PomoSession, opts: { immediate?: boolean 
   }
 }
 
-async function persistActiveLog(log: PomoTaskLog, opts: { immediate?: boolean } = {}): Promise<void> {
-  if (!opts.immediate && ticksSinceFlush !== 0) return; // acompanha o mesmo ritmo da sessão
+async function persistActiveLog(log: PomoTaskLog): Promise<void> {
   try {
     await supabase
       .from('task_logs')
@@ -83,14 +77,54 @@ async function persistActiveLog(log: PomoTaskLog, opts: { immediate?: boolean } 
   }
 }
 
-// Chamado quando o Realtime reconecta — evita esperar até 15s pra
-// sincronizar o que ficou pendente durante a queda.
+// Chamado quando o Realtime reconecta — evita perder dados pendentes.
+// Também retenta inserts offline que ficaram na fila.
 export async function forceFlushActive(): Promise<void> {
   const { activeSession, activeTaskLogs } = appStore.getSnapshot();
-  if (!activeSession) return;
-  await persistSession(activeSession, { immediate: true });
-  const activeLog = activeTaskLogs.find((l) => l.id === activeSession.activeTaskLogId);
-  if (activeLog) await persistActiveLog(activeLog, { immediate: true });
+  if (activeSession) {
+    await persistSession(activeSession);
+    const activeLog = activeTaskLogs.find((l) => l.id === activeSession.activeTaskLogId);
+    if (activeLog) await persistActiveLog(activeLog);
+  }
+
+  // Tenta reenviar inserts pendentes (offline)
+  if (pendingInserts.length > 0) {
+    const toRetry = [...pendingInserts];
+    pendingInserts = [];
+    for (const pending of toRetry) {
+      if (pending.type === 'session') {
+        try {
+          const { data, error } = await supabase
+            .from('sessions')
+            .insert(pending.payload)
+            .select('*')
+            .single();
+          if (error || !data) {
+            console.error('[timerEngine] falha ao reenviar insert de sessão', error);
+            pendingInserts.push(pending);
+          }
+        } catch (err) {
+          console.error('[timerEngine] erro ao reenviar insert de sessão', err);
+          pendingInserts.push(pending);
+        }
+      } else if (pending.type === 'task_log') {
+        try {
+          const { data, error } = await supabase
+            .from('task_logs')
+            .insert(pending.payload)
+            .select('*')
+            .single();
+          if (error || !data) {
+            console.error('[timerEngine] falha ao reenviar insert de task_log', error);
+            pendingInserts.push(pending);
+          }
+        } catch (err) {
+          console.error('[timerEngine] erro ao reenviar insert de task_log', err);
+          pendingInserts.push(pending);
+        }
+      }
+    }
+  }
 }
 
 async function insertSession(partial: {
@@ -101,22 +135,34 @@ async function insertSession(partial: {
   task: string;
 }): Promise<PomoSession> {
   const userId = currentUserId();
-  const { data, error } = await supabase
-    .from('sessions')
-    .insert({
-      user_id: userId,
-      task: partial.task,
-      mode: partial.mode,
-      cycle_kind: partial.cycleKind,
-      planned_seconds: partial.plannedSeconds,
-      elapsed_seconds: 0,
-      status: partial.status,
-      started_at: new Date().toISOString(),
-    })
-    .select('*')
-    .single();
-  if (error || !data) throw new Error(error?.message ?? 'Falha ao criar sessão.');
-  return mapSession(data);
+  const now = new Date().toISOString();
+  const payload = {
+    id: randomUUID(),
+    user_id: userId,
+    task: partial.task,
+    mode: partial.mode,
+    cycle_kind: partial.cycleKind,
+    planned_seconds: partial.plannedSeconds,
+    elapsed_seconds: 0,
+    status: partial.status,
+    started_at: now,
+    synced_at: now,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert(payload)
+      .select('*')
+      .single();
+    if (error || !data) throw new Error(error?.message ?? 'Falha ao criar sessão.');
+    return mapSession(data);
+  } catch (err) {
+    // Se offline, aplica otimisticamente no appStore e enfileira para retry
+    console.warn('[timerEngine] falha ao inserir sessão (offline?), enfileirando para retry', err);
+    pendingInserts.push({ type: 'session', payload });
+    return mapSession(payload);
+  }
 }
 
 async function insertTaskLog(sessionId: string, args: {
@@ -126,38 +172,66 @@ async function insertTaskLog(sessionId: string, args: {
   title: string;
 }): Promise<PomoTaskLog> {
   const userId = currentUserId();
-  const { data, error } = await supabase
-    .from('task_logs')
-    .insert({
-      session_id: sessionId,
-      task_id: args.taskId,
-      project_id: args.projectId,
-      client_id: args.clientId,
-      user_id: userId,
-      task_title: args.title,
-      elapsed_seconds: 0,
-    })
-    .select('*')
-    .single();
-  if (error || !data) throw new Error(error?.message ?? 'Falha ao criar log de tarefa.');
-  return mapTaskLog(data);
+  const now = new Date().toISOString();
+  const payload = {
+    id: randomUUID(),
+    session_id: sessionId,
+    task_id: args.taskId,
+    project_id: args.projectId,
+    client_id: args.clientId,
+    user_id: userId,
+    task_title: args.title,
+    elapsed_seconds: 0,
+    started_at: now,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('task_logs')
+      .insert(payload)
+      .select('*')
+      .single();
+    if (error || !data) throw new Error(error?.message ?? 'Falha ao criar log de tarefa.');
+    return mapTaskLog(data);
+  } catch (err) {
+    // Se offline, aplica otimisticamente e enfileira para retry
+    console.warn('[timerEngine] falha ao inserir task_log (offline?), enfileirando para retry', err);
+    pendingInserts.push({ type: 'task_log', payload });
+    return mapTaskLog(payload);
+  }
 }
 
 export async function startFocus(taskTitle: string, mode?: PomoMode): Promise<void> {
   const current = appStore.getSnapshot();
   const useMode = mode ?? current.selectedMode;
+  const userId = currentUserId();
 
-  if (current.activeSession && current.activeSession.status !== 'Concluído' && current.activeSession.status !== 'Interrompido') {
-    await supabase.from('sessions').update({ status: 'Interrompido', ended_at: new Date().toISOString() }).eq('id', current.activeSession.id);
+  let session: PomoSession;
+  try {
+    // Chama a RPC atômica que interrompe a sessão antiga e insere a nova em uma transação
+    const { data, error } = await supabase.rpc('start_focus_session', {
+      p_user_id: userId,
+      p_mode: useMode,
+      p_cycle_kind: 'Foco',
+      p_planned_seconds: POMO_MODES[useMode].focusSeconds,
+      p_task: taskTitle,
+    });
+    if (error || !data) throw new Error(error?.message ?? 'Falha ao iniciar foco.');
+    session = mapSession(data);
+  } catch (err) {
+    // Fallback: se a RPC falhar, tenta o método anterior (UPDATE+INSERT)
+    console.warn('[timerEngine] RPC start_focus_session falhou, tentando método tradicional', err);
+    if (current.activeSession && current.activeSession.status !== 'Concluído' && current.activeSession.status !== 'Interrompido') {
+      await supabase.from('sessions').update({ status: 'Interrompido', ended_at: new Date().toISOString() }).eq('id', current.activeSession.id);
+    }
+    session = await insertSession({
+      mode: useMode,
+      cycleKind: 'Foco',
+      plannedSeconds: POMO_MODES[useMode].focusSeconds,
+      status: 'Ativo',
+      task: taskTitle,
+    });
   }
-
-  const session = await insertSession({
-    mode: useMode,
-    cycleKind: 'Foco',
-    plannedSeconds: POMO_MODES[useMode].focusSeconds,
-    status: 'Ativo',
-    task: taskTitle,
-  });
 
   await authManager.updatePreferences({ selectedMode: useMode });
   appStore.patch({ selectedMode: useMode, activeSession: session, activeTaskLogs: [] });
@@ -189,7 +263,7 @@ export async function pause(): Promise<void> {
   const next = { ...activeSession, status: 'Pausado' as const };
   appStore.patch({ activeSession: next });
   stopTicker();
-  await persistSession(next, { immediate: true });
+  await persistSession(next);
 }
 
 export async function resume(): Promise<void> {
@@ -198,7 +272,7 @@ export async function resume(): Promise<void> {
   const next = { ...activeSession, status: 'Ativo' as const };
   appStore.patch({ activeSession: next, selectedMode: next.mode });
   startTicker();
-  await persistSession(next, { immediate: true });
+  await persistSession(next);
 }
 
 export async function stop(): Promise<void> {
@@ -208,7 +282,7 @@ export async function stop(): Promise<void> {
   const next = { ...activeSession, status: 'Interrompido' as const, endedAt: new Date().toISOString(), activeTaskLogId: null };
   appStore.patch({ activeSession: next });
   stopTicker();
-  await persistSession(next, { immediate: true });
+  await persistSession(next);
 }
 
 async function tick(): Promise<void> {
@@ -227,10 +301,6 @@ async function tick(): Promise<void> {
   }
 
   appStore.patch({ activeSession: displaySession, activeTaskLogs: logs });
-
-  const activeLog = logs.find((l) => l.id === session.activeTaskLogId);
-  await persistSession(displaySession);
-  if (activeLog) await persistActiveLog(activeLog);
 
   if (elapsedSeconds >= session.plannedSeconds) {
     await completeSession();
@@ -252,7 +322,7 @@ export async function completeSession(): Promise<void> {
 
   const endedSession = { ...session, status: 'Concluído' as const, endedAt: new Date().toISOString(), activeTaskLogId: null };
   appStore.patch({ activeSession: endedSession, activeTaskLogs: [] });
-  await persistSession(endedSession, { immediate: true });
+  await persistSession(endedSession);
 
   if (session.cycleKind === 'Foco') {
     if (notifyEnabled('notifyFocusEnd')) {
@@ -296,7 +366,7 @@ export async function skipToBreak(): Promise<void> {
   if (active) pendingCarryOverTitle = { taskId: active.taskId, subtaskId: null, title: active.taskTitle };
 
   const interrupted = { ...session, status: 'Interrompido' as const, endedAt: new Date().toISOString(), activeTaskLogId: null };
-  await persistSession(interrupted, { immediate: true });
+  await persistSession(interrupted);
 
   const breakSession = await insertSession({
     mode: session.mode,
@@ -315,7 +385,7 @@ export async function skipToFocus(): Promise<void> {
   if (!session || session.cycleKind !== 'Pausa') return;
   stopTicker();
   const interrupted = { ...session, status: 'Interrompido' as const, endedAt: new Date().toISOString() };
-  await persistSession(interrupted, { immediate: true });
+  await persistSession(interrupted);
 
   await startFocus('Bloco de foco', session.mode);
 }
@@ -402,7 +472,7 @@ export async function focusTask(taskId: string | null, _subtaskId: string | null
 
   const nextSession = { ...appStore.getSnapshot().activeSession!, activeTaskLogId: log.id };
   appStore.patch({ activeSession: nextSession });
-  await persistSession(nextSession, { immediate: true });
+  await persistSession(nextSession);
   // Recalcula tarefas mais usadas com o novo foco contabilizado
   await loadMostUsedTasks();
 }
@@ -446,6 +516,7 @@ export function mapSession(row: any): PomoSession {
     startedAt: row.started_at,
     endedAt: row.ended_at,
     activeTaskLogId: row.active_task_log_id,
+    syncedAt: row.synced_at,
   };
 }
 

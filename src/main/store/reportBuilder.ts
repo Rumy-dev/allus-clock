@@ -132,26 +132,47 @@ export async function queryTrend(
   filters?: { clientId?: string; projectId?: string; userId?: string },
 ): Promise<{ date: string; totalSeconds: number }[]> {
   const { start, end } = rangeToBounds(range);
-  let query = supabase.from('task_logs').select('started_at, elapsed_seconds');
-  if (start) query = query.gte('started_at', start);
-  if (end) query = query.lte('started_at', end);
-  if (filters?.clientId) query = query.eq('client_id', filters.clientId);
-  if (filters?.projectId) query = query.eq('project_id', filters.projectId);
-  if (filters?.userId) query = query.eq('user_id', filters.userId);
 
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
+  // Chama RPC que agrupa por dia no Postgres
+  const { data, error } = await supabase.rpc('report_trend', {
+    p_start_date: start,
+    p_end_date: end,
+    p_client_id: filters?.clientId ?? null,
+    p_project_id: filters?.projectId ?? null,
+    p_user_id: filters?.userId ?? null,
+  });
 
-  const dayMap = new Map<string, number>();
-  for (const row of data ?? []) {
-    if ((row.elapsed_seconds ?? 0) <= 0) continue;
-    const date = new Date(row.started_at).toISOString().split('T')[0];
-    dayMap.set(date, (dayMap.get(date) ?? 0) + row.elapsed_seconds);
+  if (error) {
+    console.warn('[reportBuilder] erro ao chamar RPC report_trend, usando fallback local', error);
+
+    // Fallback se RPC falhar: cálculo local (mantém compatibilidade)
+    let query = supabase.from('task_logs').select('started_at, elapsed_seconds');
+    if (start) query = query.gte('started_at', start);
+    if (end) query = query.lte('started_at', end);
+    if (filters?.clientId) query = query.eq('client_id', filters.clientId);
+    if (filters?.projectId) query = query.eq('project_id', filters.projectId);
+    if (filters?.userId) query = query.eq('user_id', filters.userId);
+
+    const { data: fallbackData, error: fallbackError } = await query;
+    if (fallbackError) throw new Error(fallbackError.message);
+
+    const dayMap = new Map<string, number>();
+    for (const row of fallbackData ?? []) {
+      if ((row.elapsed_seconds ?? 0) <= 0) continue;
+      const date = new Date(row.started_at).toISOString().split('T')[0];
+      dayMap.set(date, (dayMap.get(date) ?? 0) + row.elapsed_seconds);
+    }
+
+    return Array.from(dayMap.entries())
+      .map(([date, totalSeconds]) => ({ date, totalSeconds }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  return Array.from(dayMap.entries())
-    .map(([date, totalSeconds]) => ({ date, totalSeconds }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // RPC retorna array de {date, total_seconds}
+  return (data ?? []).map((row: any) => ({
+    date: row.date,
+    totalSeconds: row.total_seconds ?? 0,
+  }));
 }
 
 export async function exportCsv(range: DateRangeFilter): Promise<{ path: string } | { error: string }> {

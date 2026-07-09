@@ -111,125 +111,74 @@ export function showFloatingPanel(): void {
     return;
   }
 
-  try {
-    const snapshot = appStore.getSnapshot();
+  const snapshot = appStore.getSnapshot();
+  floatingPanelCompactMode = snapshot.floatingPanelIsCompactMode ?? false;
+  const hasActiveSession = snapshot.activeSession !== null;
 
-    // Restaurar o modo (compacto ou normal) - com fallback
-    floatingPanelCompactMode = snapshot.floatingPanelIsCompactMode ?? false;
+  let width = 307;
+  let height = 390;
 
-    // Detectar se há sessão ativa (rodando) ou não (parado)
-    const hasActiveSession = snapshot.activeSession !== null;
-
-    // Restaurar o tamanho apropriado para o modo e estado
-    let width: number;
-    let height: number;
-
-    if (floatingPanelCompactMode) {
-      const savedCompactSize = snapshot.floatingPanelCompactSize;
-      if (savedCompactSize && savedCompactSize.width && savedCompactSize.height) {
-        // Usuário customizou, respeitar
-        width = savedCompactSize.width;
-        height = savedCompactSize.height;
-      } else {
-        // Usar tamanho padrão baseado no estado
-        if (hasActiveSession) {
-          width = 285;  // Compacto rodando
-          height = 57;
-        } else {
-          width = 218;  // Compacto parado
-          height = 54;
-        }
-      }
-      console.log(`[FloatingPanel] Abrindo COMPACTO ${hasActiveSession ? 'RODANDO' : 'PARADO'}: ${width}×${height}px`);
+  // Tentar usar tamanho customizado
+  if (floatingPanelCompactMode) {
+    const savedSize = snapshot.floatingPanelCompactSize;
+    if (savedSize?.width && savedSize?.height) {
+      width = savedSize.width;
+      height = savedSize.height;
+    } else if (hasActiveSession) {
+      width = 285;
+      height = 57;
     } else {
-      const savedNormalSize = snapshot.floatingPanelSize;
-      if (savedNormalSize && savedNormalSize.width && savedNormalSize.height) {
-        // Usuário customizou, respeitar
-        width = savedNormalSize.width;
-        height = savedNormalSize.height;
-      } else {
-        // Usar tamanho padrão baseado no estado
-        if (hasActiveSession) {
-          width = 429;  // Normal rodando
-          height = 479;
-        } else {
-          width = 307;  // Normal parado
-          height = 390;
-        }
-      }
-      console.log(`[FloatingPanel] Abrindo NORMAL ${hasActiveSession ? 'RODANDO' : 'PARADO'}: ${width}×${height}px`);
+      width = 218;
+      height = 54;
     }
-
-    // Verificar valores válidos
-    if (!width || !height || width < 100 || height < 54) {
-      width = 307;
-      height = 390;
-      console.log(`[FloatingPanel] Valores inválidos, usando fallback: ${width}×${height}px`);
+  } else {
+    const savedSize = snapshot.floatingPanelSize;
+    if (savedSize?.width && savedSize?.height) {
+      width = savedSize.width;
+      height = savedSize.height;
+    } else if (hasActiveSession) {
+      width = 429;
+      height = 479;
     }
-
-    const win = new BrowserWindow({
-      width,
-      height,
-      x: undefined,
-      y: undefined,
-      frame: false,
-      transparent: true,
-      resizable: true,
-      minWidth: 100,
-      minHeight: 110,
-      alwaysOnTop: true,
-      skipTaskbar: true,
-      webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
-    });
-    win.setAlwaysOnTop(true, 'screen-saver');
-    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    loadPage(win, 'floating');
-
-    // Salvar tamanho quando usuário redimensiona manualmente (com debounce)
-    win.on('resized', () => {
-      if (floatingResizeTimeout) clearTimeout(floatingResizeTimeout);
-
-      floatingResizeTimeout = setTimeout(() => {
-        const bounds = win.getBounds();
-        const size = { width: bounds.width, height: bounds.height };
-
-        if (floatingPanelCompactMode) {
-          appStore.patch({ floatingPanelCompactSize: size });
-          authManager.updatePreferences({ floatingPanelCompactSize: size }).catch(() => {
-            // Se falhar (offline), o estado local já foi atualizado
-          });
-        } else {
-          appStore.patch({ floatingPanelSize: size });
-          authManager.updatePreferences({ floatingPanelSize: size }).catch(() => {
-            // Se falhar (offline), o estado local já foi atualizado
-          });
-        }
-      }, 300); // Aguarda 300ms após o último resize antes de salvar
-    });
-
-    windows.floating = win;
-  } catch (error) {
-    console.error('[FloatingPanel] Erro ao abrir painel:', error);
-    // Fallback: abrir com tamanho mínimo se houver erro
-    const win = new BrowserWindow({
-      width: 307,
-      height: 390,
-      x: undefined,
-      y: undefined,
-      frame: false,
-      transparent: true,
-      resizable: true,
-      minWidth: 100,
-      minHeight: 110,
-      alwaysOnTop: true,
-      skipTaskbar: true,
-      webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
-    });
-    win.setAlwaysOnTop(true, 'screen-saver');
-    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    loadPage(win, 'floating');
-    windows.floating = win;
   }
+
+  const win = new BrowserWindow({
+    width,
+    height,
+    x: undefined,
+    y: undefined,
+    frame: false,
+    transparent: true,
+    resizable: true,
+    minWidth: 100,
+    minHeight: 110,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+  });
+  win.setAlwaysOnTop(true, 'screen-saver');
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  loadPage(win, 'floating');
+
+  // Salvar tamanho quando usuário redimensiona manualmente (com debounce)
+  win.on('resized', () => {
+    if (floatingResizeTimeout) clearTimeout(floatingResizeTimeout);
+
+    floatingResizeTimeout = setTimeout(() => {
+      const bounds = win.getBounds();
+      const size = { width: bounds.width, height: bounds.height };
+
+      if (floatingPanelCompactMode) {
+        appStore.patch({ floatingPanelCompactSize: size });
+        authManager.updatePreferences({ floatingPanelCompactSize: size }).catch(() => {});
+      } else {
+        appStore.patch({ floatingPanelSize: size });
+        authManager.updatePreferences({ floatingPanelSize: size }).catch(() => {});
+      }
+    }, 300);
+  });
+
+  windows.floating = win;
 }
 
 export function hideFloatingPanel(): void {

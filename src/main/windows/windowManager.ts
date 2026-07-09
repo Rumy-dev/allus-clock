@@ -235,7 +235,6 @@ export function setFloatingPanelCompactMode(isCompact: boolean): void {
   if (!windows.floating || windows.floating.isDestroyed()) return;
 
   const snapshot = appStore.getSnapshot();
-  if (snapshot.floatingPanelSizeLocked) return;
   const hasActiveSession = snapshot.activeSession?.status === 'Ativo';
 
   if (isCompact) {

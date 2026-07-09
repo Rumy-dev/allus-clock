@@ -43,10 +43,18 @@
     radial-gradient(circle at 85% 20%, rgba(75, 245, 227, 0.18), transparent 40%),
     radial-gradient(circle at 50% 90%, rgba(155, 107, 255, 0.25), transparent 50%),
     var(--allus-bg-1);
+  border-radius: var(--allus-radius-lg);
+  overflow: hidden;
 }
 
 .allus-titlebar {
   -webkit-app-region: drag;
+  border-radius: var(--allus-radius-lg);
+  overflow: hidden;
+}
+
+.allus-floating-root {
+  border-radius: var(--allus-radius-md);
 }
 
 .allus-titlebar button,

@@ -502,6 +502,14 @@ export function MainWindow() {
             <button
               type="button"
               style={pillButtonStyle}
+              onClick={() => window.allus.invoke('window:openFloating', undefined)}
+              title="Painel flutuante"
+            >
+              🪟
+            </button>
+            <button
+              type="button"
+              style={pillButtonStyle}
               onClick={() => window.allus.invoke('window:openTaskCenter', undefined)}
             >
               📁

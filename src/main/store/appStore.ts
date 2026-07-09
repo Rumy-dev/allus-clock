@@ -23,6 +23,7 @@ let state: AppSnapshot = {
   soundEnabled: DEFAULT_PREFERENCES.soundEnabled,
   floatingMinimizable: DEFAULT_PREFERENCES.floatingMinimizable,
   floatingPanelOpacity: DEFAULT_PREFERENCES.floatingPanelOpacity,
+  floatingPanelSize: DEFAULT_PREFERENCES.floatingPanelSize,
   autoLaunchEnabled: false,
   recentTasks: [],
   profiles: [],

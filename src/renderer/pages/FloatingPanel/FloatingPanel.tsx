@@ -35,21 +35,20 @@ export function FloatingPanel() {
   const session = snapshot?.activeSession ?? null;
   const activeLog = session ? snapshot?.activeTaskLogs.find((l) => l.id === session.activeTaskLogId) ?? null : null;
 
-  // Redimensiona a janela do painel flutuante pra caber exatamente o
-  // conteúdo atual (formulário de tarefa, avisos, o painel de transparência,
-  // ou o modal de escolher tarefa/modo), sem sobra nem corte.
+  // Auto-fit apenas quando há modal/overlay aberto. Caso contrário, respeita
+  // o tamanho que o usuário pode ter definido manualmente.
   useEffect(() => {
     const PADDING_X = 2 * 12; // var(--allus-space-3) nas duas bordas
     const PADDING_Y = 2 * 16; // var(--allus-space-4) nas duas bordas
     const BORDER_LEFT = 3;
-    const BUTTON_SPACE = 60; // espaço extra para botão de minimizar
+    const BUTTON_SPACE = 60;
 
     const measure = () => {
+      // Quando há modal/overlay, força o tamanho para o modal
       if (modeSelectTask) {
-        // Modal cobre a janela inteira — só precisa caber o próprio card.
         const el = modalCardRef.current;
         if (!el) return;
-        const width = el.offsetWidth + 48; // padding do overlay do modal (24px cada lado)
+        const width = el.offsetWidth + 48;
         const height = Math.min(el.offsetHeight + 48, window.screen.availHeight * 0.85);
         applySize(width, height);
         return;
@@ -64,21 +63,9 @@ export function FloatingPanel() {
         return;
       }
 
-      const contentEl = contentRef.current;
-      if (!contentEl) return;
-      let width = contentEl.offsetWidth + PADDING_X + BORDER_LEFT;
-      let height = contentEl.offsetHeight + PADDING_Y + BUTTON_SPACE;
-
-      // Painel de transparência é um overlay position:fixed — a janela
-      // precisa ser grande o bastante pra ele não cortar nas bordas.
-      // Se aberto, aumenta altura para conter o overlay
-      if (showOpacityControl && opacityPanelRef.current) {
-        const panel = opacityPanelRef.current;
-        // Garante altura suficiente para o painel de opacidade não sair da tela
-        height = Math.max(height, panel.offsetHeight + 80);
-      }
-
-      applySize(width, height);
+      // Sem modal: não força redimensionamento automático
+      // O usuário pode ter redimensionado manualmente (floatingPanelSize !== null)
+      // e queremos respeitar essa preferência
     };
 
     function applySize(width: number, height: number) {
@@ -89,15 +76,18 @@ export function FloatingPanel() {
       invokeAction('window:setFloatingHeight', next);
     }
 
-    const observed = [contentRef.current, modalCardRef.current, opacityPanelRef.current, projectPickerRef.current].filter(
+    const observed = [modalCardRef.current, projectPickerRef.current].filter(
       (el): el is HTMLDivElement => el !== null,
     );
-    if (observed.length === 0) return;
+    if (observed.length === 0) {
+      measure();
+      return;
+    }
     const observer = new ResizeObserver(measure);
     observed.forEach((el) => observer.observe(el));
     measure();
     return () => observer.disconnect();
-  }, [modeSelectTask, showAdd, showOpacityControl, showProjectPicker, session?.status, session?.cycleKind, activeLog?.id]);
+  }, [modeSelectTask, showProjectPicker]);
 
   useEffect(() => {
     if (!snapshot?.auth.profile) return;
@@ -171,7 +161,7 @@ export function FloatingPanel() {
 
   return (
     <div
-      className="allus-titlebar"
+      className="allus-titlebar allus-floating-root"
       style={{
         height: '100%',
         padding: 'var(--allus-space-4) var(--allus-space-3)',
@@ -363,6 +353,16 @@ export function FloatingPanel() {
                 ...iconBtn,
                 transition: 'all 0.2s ease',
               }}
+              title="Opacidade"
+              onClick={() => setShowOpacityControl((v) => !v)}
+            >
+              ◐
+            </button>
+            <button
+              style={{
+                ...iconBtn,
+                transition: 'all 0.2s ease',
+              }}
               title="Abrir janela principal"
               onClick={() => window.allus.invoke('window:openMain', undefined)}
             >
@@ -421,6 +421,16 @@ export function FloatingPanel() {
             title="Adicionar tarefa"
           >
             +
+          </button>
+          <button
+            style={{
+              ...iconBtn,
+              transition: 'all 0.2s ease',
+            }}
+            title="Opacidade"
+            onClick={() => setShowOpacityControl((v) => !v)}
+          >
+            ◐
           </button>
           <button
             style={{
@@ -606,6 +616,56 @@ export function FloatingPanel() {
         </div>
       </div>
       </div>
+
+      {/* Painel de controle de opacidade - overlay com slider */}
+      {showOpacityControl && (
+        <div
+          className="allus-no-drag"
+          ref={opacityPanelRef}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowOpacityControl(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(13, 11, 22, 0.95)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 12,
+              padding: '16px',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              minWidth: '200px',
+            }}
+          >
+            <div style={{ fontSize: 12, color: 'var(--allus-text-muted)', marginBottom: '12px', fontWeight: 500 }}>
+              Opacidade do painel
+            </div>
+            <input
+              type="range"
+              min={20}
+              max={100}
+              value={snapshot?.floatingPanelOpacity ?? 90}
+              onChange={(e) => invokeAction('prefs:setFloatingPanelOpacity', { opacity: Number(e.target.value) })}
+              style={{
+                width: '100%',
+                cursor: 'pointer',
+              }}
+              title={`${snapshot?.floatingPanelOpacity ?? 90}%`}
+            />
+            <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginTop: '8px', textAlign: 'center' }}>
+              {snapshot?.floatingPanelOpacity ?? 90}%
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de seleção de tarefa e modo */}
       {modeSelectTask && (

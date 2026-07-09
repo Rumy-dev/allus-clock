@@ -67,7 +67,6 @@ export function showLogin(): void {
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'login');
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) win.webContents.openDevTools({ mode: 'detach' });
   win.on('closed', () => {
     windows.login = null;
   });
@@ -107,9 +106,14 @@ export function showFloatingPanel(): void {
     windows.floating.show();
     return;
   }
+  const snapshot = appStore.getSnapshot();
+  const savedSize = snapshot.floatingPanelSize;
+  const width = savedSize?.width ?? 280;
+  const height = savedSize?.height ?? 320;
+
   const win = new BrowserWindow({
-    width: 280,
-    height: 320,
+    width,
+    height,
     x: undefined,
     y: undefined,
     frame: false,
@@ -124,6 +128,13 @@ export function showFloatingPanel(): void {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   loadPage(win, 'floating');
+
+  // Salvar tamanho quando usuário redimensiona manualmente
+  win.on('resized', () => {
+    const bounds = win.getBounds();
+    appStore.patch({ floatingPanelSize: { width: bounds.width, height: bounds.height } });
+  });
+
   windows.floating = win;
 }
 

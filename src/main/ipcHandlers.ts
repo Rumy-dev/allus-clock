@@ -99,6 +99,10 @@ export function registerIpcHandlers(): void {
     await authManager.updatePreferences({ floatingPanelOpacity: clamped });
     appStore.patch({ floatingPanelOpacity: clamped });
   });
+  handle('prefs:setFloatingPanelSize', async ({ size }) => {
+    await authManager.updatePreferences({ floatingPanelSize: size });
+    appStore.patch({ floatingPanelSize: size });
+  });
   handle('prefs:setNotify', async ({ event, enabled }) => {
     const key = (`notify${event.charAt(0).toUpperCase()}${event.slice(1)}`) as
       | 'notifyFocusStart'
@@ -119,6 +123,7 @@ export function registerIpcHandlers(): void {
   handle('window:openDashboard', async () => windowManager.showDashboard());
   handle('window:openPulse', async () => windowManager.showPulse());
   handle('window:openMain', async () => windowManager.showMainWindow());
+  handle('window:openFloating', async () => windowManager.showFloatingPanel());
 
   ipcMain.handle('window:minimizeSelf', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();

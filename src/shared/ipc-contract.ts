@@ -31,6 +31,7 @@ export interface AppSnapshot {
   floatingMinimizable: boolean;
   floatingPanelOpacity: number;
   floatingPanelSize: { width: number; height: number } | null;
+  floatingPanelCompactSize: { width: number; height: number } | null;
   autoLaunchEnabled: boolean;
   recentTasks: PomoTaskLog[]; // últimas 3 tarefas distintas, p/ troca rápida
   profiles: TeamMember[]; // roster do time, p/ "criado por" etc
@@ -90,6 +91,7 @@ export interface IpcInvokeMap {
   'prefs:setFloatingMinimizable': (args: { enabled: boolean }) => void;
   'prefs:setFloatingPanelOpacity': (args: { opacity: number }) => void;
   'prefs:setFloatingPanelSize': (args: { size: { width: number; height: number } | null }) => void;
+  'prefs:setFloatingPanelCompactSize': (args: { size: { width: number; height: number } | null }) => void;
   'prefs:setNotify': (args: { event: 'focusStart' | 'focusEnd' | 'breakEnd'; enabled: boolean }) => void;
   'prefs:setAutoLaunch': (args: { enabled: boolean }) => void;
   'account:updateName': (args: { fullName: string }) => void;
@@ -107,6 +109,7 @@ export interface IpcInvokeMap {
   'window:minimizeSelf': () => void;
   'window:closeSelf': () => void;
   'window:setFloatingHeight': (args: { width?: number; height?: number }) => void;
+  'window:setFloatingCompactMode': (args: { isCompact: boolean }) => void;
   'state:get': () => AppSnapshot;
 }
 

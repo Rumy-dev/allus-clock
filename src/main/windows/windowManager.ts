@@ -11,6 +11,8 @@ export function setQuitting(value: boolean): void {
   isQuitting = value;
 }
 
+let floatingPanelCompactMode = false;
+
 const windows: {
   login: BrowserWindow | null;
   main: BrowserWindow | null;
@@ -132,7 +134,12 @@ export function showFloatingPanel(): void {
   // Salvar tamanho quando usuário redimensiona manualmente
   win.on('resized', () => {
     const bounds = win.getBounds();
-    appStore.patch({ floatingPanelSize: { width: bounds.width, height: bounds.height } });
+    const size = { width: bounds.width, height: bounds.height };
+    if (floatingPanelCompactMode) {
+      appStore.patch({ floatingPanelCompactSize: size });
+    } else {
+      appStore.patch({ floatingPanelSize: size });
+    }
   });
 
   windows.floating = win;
@@ -175,6 +182,30 @@ export function togglePulse(): void {
     windows.pulse.close();
   } else {
     showPulse();
+  }
+}
+
+export function setFloatingPanelCompactMode(isCompact: boolean): void {
+  floatingPanelCompactMode = isCompact;
+  if (!windows.floating || windows.floating.isDestroyed()) return;
+
+  const snapshot = appStore.getSnapshot();
+  const isNowCompact = isCompact;
+
+  if (isNowCompact) {
+    // Muda para tamanho do modo compacto
+    const compactSize = snapshot.floatingPanelCompactSize;
+    const width = compactSize?.width ?? 280;
+    const height = compactSize?.height ?? 110;
+    const bounds = windows.floating.getBounds();
+    windows.floating.setBounds({ ...bounds, width, height });
+  } else {
+    // Muda para tamanho do modo normal
+    const normalSize = snapshot.floatingPanelSize;
+    const width = normalSize?.width ?? 280;
+    const height = normalSize?.height ?? 320;
+    const bounds = windows.floating.getBounds();
+    windows.floating.setBounds({ ...bounds, width, height });
   }
 }
 

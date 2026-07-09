@@ -147,6 +147,11 @@ export function FloatingPanel() {
   const cycleEmoji = isFocus ? '🔴' : '🟢';
   const alertColor = isAlertTime ? '#ff5fae' : 'var(--allus-text-primary)';
 
+  const handleCompactModeToggle = (newValue: boolean) => {
+    setIsCompactMode(newValue);
+    window.allus.invoke('window:setFloatingCompactMode', { isCompact: newValue });
+  };
+
   // Status badge — usa a mesma bolinha de status do resto do app (allus-status-dot)
   const statusDotStatus: 'Ativo' | 'Pausado' | 'Concluído' | 'Interrompido' = session?.status ?? 'Interrompido';
   const statusLabel = !session ? 'Parado' : session.status === 'Interrompido' ? 'Parado' : session.status;
@@ -171,7 +176,7 @@ export function FloatingPanel() {
         className="allus-titlebar allus-floating-root"
         style={{
           height: '100%',
-          padding: '6px 8px',
+          padding: '4px 6px',
           borderLeft: `3px solid ${session ? cycleColor : `rgba(255,255,255,${borderOpacity * 0.3})`}`,
           borderRight: `2px solid ${session?.cycleKind === 'Foco' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255,255,255,0.08)'}`,
           overflowY: 'auto',
@@ -180,11 +185,11 @@ export function FloatingPanel() {
           WebkitBackdropFilter: 'blur(16px)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '6px',
+          gap: '4px',
         } as any}
       >
         {/* Linha 1: Timer + Ícones + Botões */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'flex-start' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--allus-font-mono)', color: session ? alertColor : 'var(--allus-text-muted)' }}>
               {session ? formatDuration(remaining) : '–'}
@@ -202,7 +207,7 @@ export function FloatingPanel() {
                   color: isCompactMode ? '#c4b5fd' : 'var(--allus-text-primary)',
                   transition: 'all 0.2s ease',
                 }}
-                onClick={() => setIsCompactMode((v) => !v)}
+                onClick={() => handleCompactModeToggle(!isCompactMode)}
               >
                 ⇄
               </button>
@@ -356,20 +361,20 @@ export function FloatingPanel() {
         </div>
 
         {/* Linha 2: Tarefa */}
-        <div style={{ fontSize: 11, lineHeight: 1.2, color: session ? 'var(--allus-text-primary)' : 'var(--allus-text-muted)', wordBreak: 'break-word', minHeight: 16 }}>
+        <div style={{ fontSize: 10, lineHeight: 1.1, color: session ? 'var(--allus-text-primary)' : 'var(--allus-text-muted)', wordBreak: 'break-word', minHeight: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {session ? label : 'Nenhum bloco em andamento'}
         </div>
 
         {/* Barra de progresso */}
         {session && (
-          <div style={{ width: '100%', height: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 0, overflow: 'hidden', marginTop: '2px' }}>
             <div
               style={{
                 width: `${progress * 100}%`,
                 height: '100%',
                 background: cycleColor,
                 transition: 'width 0.3s ease',
-                borderRadius: 1,
+                borderRadius: 0,
               }}
             />
           </div>
@@ -629,7 +634,7 @@ export function FloatingPanel() {
                   borderColor: isCompactMode ? 'rgba(167, 139, 250, 0.3)' : 'rgba(255,255,255,0.12)',
                   color: isCompactMode ? '#c4b5fd' : 'var(--allus-text-primary)',
                 }}
-                onClick={() => setIsCompactMode((v) => !v)}
+                onClick={() => handleCompactModeToggle(!isCompactMode)}
               >
                 ⇄
               </button>

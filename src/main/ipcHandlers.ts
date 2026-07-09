@@ -103,6 +103,10 @@ export function registerIpcHandlers(): void {
     await authManager.updatePreferences({ floatingPanelSize: size });
     appStore.patch({ floatingPanelSize: size });
   });
+  handle('prefs:setFloatingPanelCompactSize', async ({ size }) => {
+    await authManager.updatePreferences({ floatingPanelCompactSize: size });
+    appStore.patch({ floatingPanelCompactSize: size });
+  });
   handle('prefs:setNotify', async ({ event, enabled }) => {
     const key = (`notify${event.charAt(0).toUpperCase()}${event.slice(1)}`) as
       | 'notifyFocusStart'
@@ -146,6 +150,10 @@ export function registerIpcHandlers(): void {
         height: height !== undefined ? Math.min(Math.max(height, 200), 700) : bounds.height,
       });
     }
+  });
+
+  ipcMain.handle('window:setFloatingCompactMode', async (_event, { isCompact }: { isCompact: boolean }) => {
+    windowManager.setFloatingPanelCompactMode(isCompact);
   });
 
 }

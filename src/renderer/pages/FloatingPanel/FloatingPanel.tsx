@@ -17,6 +17,8 @@ export function FloatingPanel() {
   const [showOpacityControl, setShowOpacityControl] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [myHoursSeconds, setMyHoursSeconds] = useState<number | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const didSyncExpandedRef = useRef(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const modalCardRef = useRef<HTMLDivElement>(null);
   const opacityPanelRef = useRef<HTMLDivElement>(null);
@@ -25,6 +27,21 @@ export function FloatingPanel() {
   const wasSessionActiveRef = useRef<boolean>(false);
 
   const panelOpacity = (snapshot?.floatingPanelOpacity ?? 90) / 100;
+
+  // Sincroniza o estado expandido/recolhido com a preferência salva, uma
+  // única vez ao carregar (depois disso, o toggle local manda).
+  useEffect(() => {
+    if (didSyncExpandedRef.current) return;
+    if (snapshot?.floatingPanelExpanded === undefined) return;
+    didSyncExpandedRef.current = true;
+    setIsExpanded(snapshot.floatingPanelExpanded);
+  }, [snapshot?.floatingPanelExpanded]);
+
+  function toggleExpanded() {
+    const next = !isExpanded;
+    setIsExpanded(next);
+    invokeAction('prefs:setFloatingPanelExpanded', { expanded: next });
+  }
 
   useKeyboardShortcuts({
     onPlayPause: () => invokeAction('timer:playPause', undefined),
@@ -74,7 +91,17 @@ export function FloatingPanel() {
         return;
       }
 
-      // Sem modal: não força redimensionamento automático
+      // Drawer expandido (sem modal): tamanho segue o conteúdo do painel
+      if (isExpanded) {
+        const el = contentRef.current;
+        if (!el) return;
+        const width = 300;
+        const height = Math.min(el.scrollHeight + 48, window.screen.availHeight * 0.85);
+        applySize(width, height);
+        return;
+      }
+
+      // Colapsado, sem modal: não força redimensionamento automático
       // O usuário pode ter redimensionado manualmente (floatingPanelSize !== null)
       // e queremos respeitar essa preferência
     };
@@ -92,7 +119,19 @@ export function FloatingPanel() {
       (el): el is HTMLDivElement => el !== null,
     );
     if (observed.length === 0) {
-      // Sem modais: não força redimensionamento se o usuário já redimensionou manualmente
+      if (isExpanded) {
+        // Painel expandido: acompanha o crescimento do conteúdo do drawer
+        const el = contentRef.current;
+        if (!el) {
+          measure();
+          return;
+        }
+        const observer = new ResizeObserver(measure);
+        observer.observe(el);
+        measure();
+        return () => observer.disconnect();
+      }
+      // Sem modais e colapsado: não força redimensionamento se o usuário já redimensionou manualmente
       if (snapshot?.floatingPanelSize !== null) return;
       measure();
       return;
@@ -101,7 +140,7 @@ export function FloatingPanel() {
     observed.forEach((el) => observer.observe(el));
     measure();
     return () => observer.disconnect();
-  }, [modeSelectTask, showProjectPicker, snapshot?.floatingPanelSize]);
+  }, [modeSelectTask, showProjectPicker, isExpanded, snapshot?.floatingPanelSize]);
 
   useEffect(() => {
     if (!snapshot?.auth.profile) return;
@@ -117,7 +156,8 @@ export function FloatingPanel() {
     };
   }, [snapshot?.auth.profile?.id]);
 
-  // Redimensionar ao iniciar/parar sessão (só se não travado)
+  // Redimensionar ao iniciar/parar sessão (só se não travado e recolhido —
+  // expandido já é tratado pelo auto-fit do drawer)
   useEffect(() => {
     const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
     const wasSessionRunning = wasSessionActiveRef.current;
@@ -126,16 +166,26 @@ export function FloatingPanel() {
     if (isSessionRunning !== wasSessionRunning) {
       wasSessionActiveRef.current = isSessionRunning;
 
-      if (!sizeLocked) {
+      if (!sizeLocked && !isExpanded) {
         const hasCustomSize = snapshot?.floatingPanelSize;
         if (!hasCustomSize) {
-          const width = isSessionRunning ? 429 : 307;
-          const height = isSessionRunning ? 479 : 390;
+          const width = 300;
+          const height = isSessionRunning ? 320 : 280;
           window.allus.invoke('window:setFloatingHeight', { width, height });
         }
       }
     }
-  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelSizeLocked]);
+  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelSizeLocked, isExpanded]);
+
+  // Voltar ao tamanho compacto ao recolher o drawer
+  useEffect(() => {
+    if (isExpanded) return;
+    const sizeLocked = snapshot?.floatingPanelSizeLocked ?? false;
+    if (sizeLocked) return;
+    if (snapshot?.floatingPanelSize) return;
+    const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
+    window.allus.invoke('window:setFloatingHeight', { width: 300, height: isSessionRunning ? 320 : 280 });
+  }, [isExpanded]);
 
   if (!snapshot) return <div className="allus-app-bg" style={{ height: '100%' }} />;
 
@@ -392,42 +442,6 @@ export function FloatingPanel() {
                 ▶ Começar
               </button>
             )}
-            <Tooltip text={isSizeLocked ? 'Destravar tamanho' : 'Travar tamanho'}>
-              <button
-                style={{
-                  ...iconBtn,
-                  transition: 'all 0.2s ease',
-                  background: isSizeLocked ? 'rgba(255, 184, 77, 0.2)' : 'rgba(255,255,255,0.06)',
-                  borderColor: isSizeLocked ? 'rgba(255, 184, 77, 0.3)' : 'rgba(255,255,255,0.12)',
-                  color: isSizeLocked ? '#ffb84d' : 'var(--allus-text-primary)',
-                }}
-                onClick={handleSizeLockToggle}
-              >
-                {isSizeLocked ? '🔒' : '🔓'}
-              </button>
-            </Tooltip>
-            <Tooltip text="Opacidade">
-              <button
-                style={{
-                  ...iconBtn,
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => setShowOpacityControl((v) => !v)}
-              >
-                ◐
-              </button>
-            </Tooltip>
-            <Tooltip text="Abrir janela principal">
-              <button
-                style={{
-                  ...iconBtn,
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => window.allus.invoke('window:openMain', undefined)}
-              >
-                ⤢
-              </button>
-            </Tooltip>
           </div>
         </div>
       ) : (
@@ -481,42 +495,6 @@ export function FloatingPanel() {
               onClick={() => setShowAdd((v) => !v)}
             >
               +
-            </button>
-          </Tooltip>
-          <Tooltip text={isSizeLocked ? 'Destravar tamanho' : 'Travar tamanho'}>
-            <button
-              style={{
-                ...iconBtn,
-                transition: 'all 0.2s ease',
-                background: isSizeLocked ? 'rgba(255, 184, 77, 0.2)' : 'rgba(255,255,255,0.06)',
-                borderColor: isSizeLocked ? 'rgba(255, 184, 77, 0.3)' : 'rgba(255,255,255,0.12)',
-                color: isSizeLocked ? '#ffb84d' : 'var(--allus-text-primary)',
-              }}
-              onClick={handleSizeLockToggle}
-            >
-              {isSizeLocked ? '🔒' : '🔓'}
-            </button>
-          </Tooltip>
-          <Tooltip text="Opacidade">
-            <button
-              style={{
-                ...iconBtn,
-                transition: 'all 0.2s ease',
-              }}
-              onClick={() => setShowOpacityControl((v) => !v)}
-            >
-              ◐
-            </button>
-          </Tooltip>
-          <Tooltip text="Abrir janela principal">
-            <button
-              style={{
-                ...iconBtn,
-                transition: 'all 0.2s ease',
-              }}
-              onClick={() => window.allus.invoke('window:openMain', undefined)}
-            >
-              ⤢
             </button>
           </Tooltip>
         </div>
@@ -610,88 +588,144 @@ export function FloatingPanel() {
         />
       )}
 
-      {/* Break Reminder - quando está em pausa */}
-      {session && session.cycleKind === 'Pausa' && session.status === 'Ativo' && (
-        <div
-          className="allus-no-drag"
-          style={{
-            padding: '10px 12px',
-            borderRadius: 8,
-            background: 'rgba(79, 245, 227, 0.1)',
-            border: '1px solid rgba(79, 245, 227, 0.25)',
-            fontSize: 12,
-            color: '#4bf5e3',
-            textAlign: 'center',
-            fontWeight: 500,
-          }}
-        >
-          💪 Alongue, beba água e descanse!
-        </div>
-      )}
-
-      {/* Histórico do dia */}
-      {(focusHours > 0 || focusMinutes > 0) && (
-        <div
-          className="allus-no-drag"
-          style={{
-            fontSize: 11,
-            color: 'var(--allus-text-muted)',
-            paddingTop: 'var(--allus-space-2)',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          📊 Hoje: {focusHours > 0 ? `${focusHours}h` : ''} {focusMinutes}m em {cyclesCompletedToday} {cyclesCompletedToday === 1 ? 'ciclo' : 'ciclos'}
-        </div>
-      )}
-
-      {/* Minhas horas (7 dias) */}
+      {/* Toggle expandir/recolher — sempre visível, no rodapé da parte compacta */}
       <button
         className="allus-no-drag"
-        onClick={() => window.allus.invoke('window:openTimeCenter', undefined)}
+        onClick={toggleExpanded}
         style={{
-          fontSize: 11,
-          color: 'var(--allus-text-muted)',
-          background: 'transparent',
+          marginTop: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          padding: '6px 8px',
+          borderRadius: 6,
           border: 'none',
-          padding: 0,
-          textAlign: 'left',
+          background: 'transparent',
+          color: 'var(--allus-text-muted)',
+          fontSize: 11,
+          fontWeight: 500,
           cursor: 'pointer',
         }}
-        title="Abrir Central de Tempos"
+        title={isExpanded ? 'Recolher painel' : 'Mais opções, tarefas recentes e histórico'}
       >
-        Minhas horas (7 dias): <span style={{ color: '#4bf5e3', fontWeight: 600 }}>{myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}</span>
+        {isExpanded ? '▲ Recolher' : '▼ Mais'}
       </button>
 
-      {/* Tarefas recentes */}
-      <div className="allus-no-drag" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)', marginTop: 'auto', paddingTop: snapshot.recentTasks.length > 0 ? 'var(--allus-space-2)' : 0, borderTop: snapshot.recentTasks.length > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
-        {snapshot.recentTasks.length > 0 && (
-          <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', fontWeight: 500 }}>Recentes</div>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {snapshot.recentTasks.map((t) => (
-            <button
-              key={t.id}
+      {/* Drawer expandido — recentes, histórico, configurações */}
+      {isExpanded && (
+        <div className="allus-no-drag" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)', paddingTop: 'var(--allus-space-2)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Break Reminder - quando está em pausa */}
+          {session && session.cycleKind === 'Pausa' && session.status === 'Ativo' && (
+            <div
               style={{
-                width: '100%',
-                padding: '8px 10px',
-                borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'rgba(255,255,255,0.04)',
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: 'rgba(79, 245, 227, 0.1)',
+                border: '1px solid rgba(79, 245, 227, 0.25)',
                 fontSize: 12,
-                textAlign: 'left',
-                color: 'var(--allus-text-primary)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                color: '#4bf5e3',
+                textAlign: 'center',
                 fontWeight: 500,
               }}
-              onClick={() => setModeSelectTask({ taskId: t.taskId, title: t.taskTitle })}
-              title={t.taskTitle}
             >
-              {t.taskTitle}
-            </button>
-          ))}
+              💪 Alongue, beba água e descanse!
+            </div>
+          )}
+
+          {/* Histórico do dia */}
+          {(focusHours > 0 || focusMinutes > 0) && (
+            <div style={{ fontSize: 11, color: 'var(--allus-text-muted)' }}>
+              📊 Hoje: {focusHours > 0 ? `${focusHours}h` : ''} {focusMinutes}m em {cyclesCompletedToday} {cyclesCompletedToday === 1 ? 'ciclo' : 'ciclos'}
+            </div>
+          )}
+
+          {/* Minhas horas (7 dias) */}
+          <button
+            onClick={() => window.allus.invoke('window:openTimeCenter', undefined)}
+            style={{
+              fontSize: 11,
+              color: 'var(--allus-text-muted)',
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+            title="Abrir Central de Tempos"
+          >
+            Minhas horas (7 dias): <span style={{ color: '#4bf5e3', fontWeight: 600 }}>{myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}</span>
+          </button>
+
+          {/* Tarefas recentes */}
+          {snapshot.recentTasks.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)' }}>
+              <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', fontWeight: 500 }}>Recentes</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {snapshot.recentTasks.map((t) => (
+                  <button
+                    key={t.id}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      background: 'rgba(255,255,255,0.04)',
+                      fontSize: 12,
+                      textAlign: 'left',
+                      color: 'var(--allus-text-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      fontWeight: 500,
+                    }}
+                    onClick={() => setModeSelectTask({ taskId: t.taskId, title: t.taskTitle })}
+                    title={t.taskTitle}
+                  >
+                    {t.taskTitle}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Configurações */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)' }}>
+            <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', fontWeight: 500 }}>Configurações</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Tooltip text={isSizeLocked ? 'Destravar tamanho' : 'Travar tamanho'}>
+                <button
+                  style={{
+                    ...iconBtn,
+                    transition: 'all 0.2s ease',
+                    background: isSizeLocked ? 'rgba(255, 184, 77, 0.2)' : 'rgba(255,255,255,0.06)',
+                    borderColor: isSizeLocked ? 'rgba(255, 184, 77, 0.3)' : 'rgba(255,255,255,0.12)',
+                    color: isSizeLocked ? '#ffb84d' : 'var(--allus-text-primary)',
+                  }}
+                  onClick={handleSizeLockToggle}
+                >
+                  {isSizeLocked ? '🔒' : '🔓'}
+                </button>
+              </Tooltip>
+              <Tooltip text="Opacidade">
+                <button
+                  style={{ ...iconBtn, transition: 'all 0.2s ease' }}
+                  onClick={() => setShowOpacityControl((v) => !v)}
+                >
+                  ◐
+                </button>
+              </Tooltip>
+              <Tooltip text="Abrir janela principal">
+                <button
+                  style={{ ...iconBtn, transition: 'all 0.2s ease' }}
+                  onClick={() => window.allus.invoke('window:openMain', undefined)}
+                >
+                  ⤢
+                </button>
+              </Tooltip>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
       </div>
 
       {/* Painel de controle de opacidade - overlay com slider */}

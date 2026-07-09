@@ -107,6 +107,10 @@ export function registerIpcHandlers(): void {
     await authManager.updatePreferences({ floatingPanelSizeLocked: locked });
     appStore.patch({ floatingPanelSizeLocked: locked });
   });
+  handle('prefs:setFloatingPanelExpanded', async ({ expanded }) => {
+    await authManager.updatePreferences({ floatingPanelExpanded: expanded });
+    appStore.patch({ floatingPanelExpanded: expanded });
+  });
   handle('prefs:setNotify', async ({ event, enabled }) => {
     const key = (`notify${event.charAt(0).toUpperCase()}${event.slice(1)}`) as
       | 'notifyFocusStart'

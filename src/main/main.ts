@@ -58,6 +58,7 @@ app.whenReady().then(async () => {
         floatingPanelCompactSize: state.profile.preferences.floatingPanelCompactSize,
         floatingPanelIsCompactMode: state.profile.preferences.floatingPanelIsCompactMode,
         floatingPanelSizeLocked: state.profile.preferences.floatingPanelSizeLocked,
+        floatingPanelExpanded: state.profile.preferences.floatingPanelExpanded,
         selectedMode: state.profile.preferences.selectedMode,
       });
 
@@ -66,6 +67,7 @@ app.whenReady().then(async () => {
         windowManager.closeLogin();
         await taskStore.hydrateTaxonomy();
         await timerEngine.loadMostUsedTasks();
+        await timerEngine.hydrateActiveSession();
         taskStore.subscribeRealtime();
         windowManager.showMainWindow();
         windowManager.showFloatingPanel();

@@ -198,9 +198,13 @@ export function showFloatingPanel(): void {
   if (savedSize?.width && savedSize?.height) {
     width = savedSize.width;
     height = savedSize.height;
-  } else {
+  } else if (snapshot.floatingPanelExpanded) {
     width = hasActiveSession ? 429 : 307;
     height = hasActiveSession ? 479 : 390;
+  } else {
+    // Painel recolhido (padrão): tamanho compacto estilo widget minimalista
+    width = 300;
+    height = hasActiveSession ? 320 : 280;
   }
 
   const win = new BrowserWindow({

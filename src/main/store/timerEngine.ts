@@ -155,7 +155,26 @@ async function insertSession(partial: {
       .insert(payload)
       .select('*')
       .single();
-    if (error || !data) throw new Error(error?.message ?? 'Falha ao criar sessão.');
+
+    if (error) {
+      // 23505 = unique_violation. Já existe uma sessão Ativo/Pausado pra esse
+      // usuário no banco (ex: o app fechou sem marcar a sessão anterior como
+      // encerrada). Nesse caso não adianta reenviar o insert depois — ele vai
+      // falhar sempre. Em vez disso, assume a sessão que já existe no banco.
+      if (error.code === '23505') {
+        const { data: existing } = await supabase
+          .from('sessions')
+          .select('*')
+          .eq('user_id', userId)
+          .in('status', ['Ativo', 'Pausado'])
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing) return mapSession(existing);
+      }
+      throw new Error(error.message);
+    }
+    if (!data) throw new Error('Falha ao criar sessão.');
     return mapSession(data);
   } catch (err) {
     // Se offline, aplica otimisticamente no appStore e enfileira para retry
@@ -292,7 +311,7 @@ async function tick(): Promise<void> {
 
   const elapsedSeconds = session.elapsedSeconds + 1;
   let logs = state.activeTaskLogs;
-  let displaySession = { ...session, elapsedSeconds };
+  const displaySession = { ...session, elapsedSeconds };
 
   if (session.cycleKind === 'Foco' && session.activeTaskLogId) {
     logs = logs.map((l) =>
@@ -535,6 +554,31 @@ export function mapTaskLog(row: any): PomoTaskLog {
     startedAt: row.started_at,
     completedAt: row.completed_at,
   };
+}
+
+// Carrega do banco a sessão Ativo/Pausado do usuário logado, se existir.
+// Sem isso, uma sessão que ficou órfã no Supabase (app fechado sem passar
+// por stop()) fica invisível pro app na próxima abertura — e a próxima
+// tentativa de focusTask()/quickAdd bate no constraint de sessão única e
+// falha silenciosamente (ver insertSession).
+export async function hydrateActiveSession(): Promise<void> {
+  const userId = currentUserId();
+  const { data: sessionRow, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .in('status', ['Ativo', 'Pausado'])
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !sessionRow) return;
+
+  const session = mapSession(sessionRow);
+  const { data: logRows } = await supabase.from('task_logs').select('*').eq('session_id', session.id);
+  const logs = (logRows ?? []).map(mapTaskLog);
+
+  appStore.patch({ activeSession: session, activeTaskLogs: logs });
+  if (session.status === 'Ativo') startTicker();
 }
 
 // Carrega as 3 tarefas mais focadas (por frequência histórica) do usuário

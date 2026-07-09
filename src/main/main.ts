@@ -96,7 +96,8 @@ app.whenReady().then(async () => {
   globalShortcut.register('CmdOrCtrl+H', () => windowManager.toggleTimeCenter());
   globalShortcut.register('CmdOrCtrl+D', () => windowManager.toggleDashboard());
   globalShortcut.register('CmdOrCtrl+P', () => {
-    if (authManager.getState().profile?.role === 'admin') {
+    const authState = authManager.getState();
+    if (authState.status === 'signedIn' && authState.profile.role === 'admin') {
       windowManager.togglePulse();
     }
   });
@@ -106,7 +107,7 @@ app.whenReady().then(async () => {
       const recentTask = state.recentTasks[0];
       if (recentTask) {
         await timerEngine.focusTask(recentTask.taskId, null, recentTask.taskTitle);
-        await timerEngine.startFocus(recentTask.taskTitle, 'Foco');
+        await timerEngine.startFocus(recentTask.taskTitle);
       }
     } else if (state.activeSession.status !== 'Ativo') {
       await timerEngine.resume();

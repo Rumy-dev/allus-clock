@@ -89,6 +89,37 @@ app.whenReady().then(async () => {
       focusedWindow.close();
     }
   });
+
+  globalShortcut.register('CmdOrCtrl+T', () => windowManager.toggleTaskCenter());
+  globalShortcut.register('CmdOrCtrl+H', () => windowManager.toggleTimeCenter());
+  globalShortcut.register('CmdOrCtrl+D', () => windowManager.toggleDashboard());
+  globalShortcut.register('CmdOrCtrl+P', () => {
+    if (authManager.getState().profile?.role === 'admin') {
+      windowManager.togglePulse();
+    }
+  });
+  globalShortcut.register('CmdOrCtrl+F', async () => {
+    const state = appStore.getSnapshot();
+    if (!state.activeSession) {
+      const recentTask = state.recentTasks[0];
+      if (recentTask) {
+        await timerEngine.focusTask(recentTask.taskId, null, recentTask.taskTitle);
+        await timerEngine.startFocus(recentTask.taskTitle, 'Foco');
+      }
+    } else if (state.activeSession.status !== 'Ativo') {
+      await timerEngine.resume();
+    }
+  });
+  globalShortcut.register('CmdOrCtrl+B', async () => {
+    const state = appStore.getSnapshot();
+    if (state.activeSession) {
+      if (state.activeSession.cycleKind === 'Foco') {
+        await timerEngine.skipToBreak();
+      } else {
+        await timerEngine.skipToFocus();
+      }
+    }
+  });
 });
 
 app.on('activate', () => {

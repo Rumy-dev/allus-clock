@@ -147,4 +147,5 @@ export function registerIpcHandlers(): void {
       });
     }
   });
+
 }

@@ -6,6 +6,7 @@ import { ToastHost } from '../../components/ToastHost';
 import { DateFilterBar } from '../../components/DateFilterBar';
 import { ProjectPicker } from '../../components/ProjectPicker';
 import { TaskSuggestions } from '../../components/TaskSuggestions';
+import { Tooltip } from '../../components/Tooltip';
 import { useKeyboardShortcuts } from '../../useKeyboardShortcuts';
 import { invokeAction, confirmDialog } from '../../invoke';
 import { POMO_MODES, displayPath, formatDuration } from '../../../shared/types';
@@ -499,47 +500,52 @@ export function MainWindow() {
             <button type="submit" style={pillButtonStyle} disabled={quickAddSaving}>
               {quickAddSaving ? '...' : '+'}
             </button>
-            <button
-              type="button"
-              style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:openFloating', undefined)}
-              title="Painel flutuante (esc para fechar)"
-            >
-              🪟
-            </button>
-            <button
-              type="button"
-              style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:toggleTaskCenter', undefined)}
-              title="Tarefas (clique novamente para fechar)"
-            >
-              📁
-            </button>
-            <button
-              type="button"
-              style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:toggleTimeCenter', undefined)}
-              title="Minhas horas (clique novamente para fechar)"
-            >
-              📊
-            </button>
-            <button
-              type="button"
-              style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:toggleDashboard', undefined)}
-              title="Dashboard (clique novamente para fechar)"
-            >
-              📈
-            </button>
-            {snapshot?.auth.profile?.role === 'admin' && (
+            <Tooltip text="Painel flutuante (ESC para fechar)">
               <button
                 type="button"
                 style={pillButtonStyle}
-                title="Allus Pulse (clique novamente para fechar)"
-                onClick={() => window.allus.invoke('window:togglePulse', undefined)}
+                onClick={() => window.allus.invoke('window:openFloating', undefined)}
               >
-                💠
+                🪟
               </button>
+            </Tooltip>
+            <Tooltip text="Tarefas (Ctrl+T ou clique novamente)">
+              <button
+                type="button"
+                style={pillButtonStyle}
+                onClick={() => window.allus.invoke('window:toggleTaskCenter', undefined)}
+              >
+                📁
+              </button>
+            </Tooltip>
+            <Tooltip text="Minhas horas (Ctrl+H ou clique novamente)">
+              <button
+                type="button"
+                style={pillButtonStyle}
+                onClick={() => window.allus.invoke('window:toggleTimeCenter', undefined)}
+              >
+                📊
+              </button>
+            </Tooltip>
+            <Tooltip text="Dashboard (Ctrl+D ou clique novamente)">
+              <button
+                type="button"
+                style={pillButtonStyle}
+                onClick={() => window.allus.invoke('window:toggleDashboard', undefined)}
+              >
+                📈
+              </button>
+            </Tooltip>
+            {snapshot?.auth.profile?.role === 'admin' && (
+              <Tooltip text="Allus Pulse (Ctrl+P ou clique novamente)">
+                <button
+                  type="button"
+                  style={pillButtonStyle}
+                  onClick={() => window.allus.invoke('window:togglePulse', undefined)}
+                >
+                  💠
+                </button>
+              </Tooltip>
             )}
           </form>
         </section>

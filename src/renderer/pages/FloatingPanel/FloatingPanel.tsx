@@ -6,6 +6,7 @@ import { invokeAction } from '../../invoke';
 import { ToastHost } from '../../components/ToastHost';
 import { TaskModeSelector } from '../../components/TaskModeSelector';
 import { ProjectPicker } from '../../components/ProjectPicker';
+import { Tooltip } from '../../components/Tooltip';
 import { displayPath } from '../../../shared/types';
 
 export function FloatingPanel() {
@@ -351,26 +352,28 @@ export function FloatingPanel() {
                 ▶ Começar
               </button>
             )}
-            <button
-              style={{
-                ...iconBtn,
-                transition: 'all 0.2s ease',
-              }}
-              title="Opacidade"
-              onClick={() => setShowOpacityControl((v) => !v)}
-            >
-              ◐
-            </button>
-            <button
-              style={{
-                ...iconBtn,
-                transition: 'all 0.2s ease',
-              }}
-              title="Abrir janela principal"
-              onClick={() => window.allus.invoke('window:openMain', undefined)}
-            >
-              ⤢
-            </button>
+            <Tooltip text="Opacidade">
+              <button
+                style={{
+                  ...iconBtn,
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => setShowOpacityControl((v) => !v)}
+              >
+                ◐
+              </button>
+            </Tooltip>
+            <Tooltip text="Abrir janela principal">
+              <button
+                style={{
+                  ...iconBtn,
+                  transition: 'all 0.2s ease',
+                }}
+                onClick={() => window.allus.invoke('window:openMain', undefined)}
+              >
+                ⤢
+              </button>
+            </Tooltip>
           </div>
         </div>
       ) : (
@@ -415,36 +418,39 @@ export function FloatingPanel() {
           >
             ⏹ Parar
           </button>
-          <button
-            style={{
-              ...iconBtn,
-              transition: 'all 0.2s ease',
-            }}
-            onClick={() => setShowAdd((v) => !v)}
-            title="Adicionar tarefa"
-          >
-            +
-          </button>
-          <button
-            style={{
-              ...iconBtn,
-              transition: 'all 0.2s ease',
-            }}
-            title="Opacidade"
-            onClick={() => setShowOpacityControl((v) => !v)}
-          >
-            ◐
-          </button>
-          <button
-            style={{
-              ...iconBtn,
-              transition: 'all 0.2s ease',
-            }}
-            title="Abrir janela principal"
-            onClick={() => window.allus.invoke('window:openMain', undefined)}
-          >
-            ⤢
-          </button>
+          <Tooltip text="Adicionar tarefa (+)">
+            <button
+              style={{
+                ...iconBtn,
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => setShowAdd((v) => !v)}
+            >
+              +
+            </button>
+          </Tooltip>
+          <Tooltip text="Opacidade">
+            <button
+              style={{
+                ...iconBtn,
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => setShowOpacityControl((v) => !v)}
+            >
+              ◐
+            </button>
+          </Tooltip>
+          <Tooltip text="Abrir janela principal">
+            <button
+              style={{
+                ...iconBtn,
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => window.allus.invoke('window:openMain', undefined)}
+            >
+              ⤢
+            </button>
+          </Tooltip>
         </div>
       )}
 

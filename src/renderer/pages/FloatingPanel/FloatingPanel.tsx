@@ -17,7 +17,6 @@ export function FloatingPanel() {
   const [showOpacityControl, setShowOpacityControl] = useState(false);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [myHoursSeconds, setMyHoursSeconds] = useState<number | null>(null);
-  const [isCompactMode, setIsCompactMode] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const modalCardRef = useRef<HTMLDivElement>(null);
   const opacityPanelRef = useRef<HTMLDivElement>(null);
@@ -118,15 +117,7 @@ export function FloatingPanel() {
     };
   }, [snapshot?.auth.profile?.id]);
 
-  // Quando abre modal em modo compacto, expandir a janela pra caber o modal
-  useEffect(() => {
-    if (modeSelectTask && isCompactMode) {
-      window.allus.invoke('window:setFloatingHeight', { width: 400, height: 500 });
-    }
-  }, [modeSelectTask, isCompactMode]);
-
-  // Modo compacto só existe quando sessão está RODANDO (Ativo).
-  // Se pausou ou parou, reverte automaticamente.
+  // Redimensionar ao iniciar/parar sessão (só se não travado)
   useEffect(() => {
     const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
     const wasSessionRunning = wasSessionActiveRef.current;
@@ -135,55 +126,16 @@ export function FloatingPanel() {
     if (isSessionRunning !== wasSessionRunning) {
       wasSessionActiveRef.current = isSessionRunning;
 
-      if (!isSessionRunning && isCompactMode) {
-        // Sessão parou/pausou em modo compacto: reverter pra normal
-        setIsCompactMode(false);
-        window.allus.invoke('window:setFloatingCompactMode', { isCompact: false });
-        window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: false });
-
-        if (!sizeLocked) {
-          const hasCustomSize = snapshot?.floatingPanelSize;
-          if (!hasCustomSize) {
-            window.allus.invoke('window:setFloatingHeight', { width: 307, height: 390 });
-          }
-        }
-        return;
-      }
-
-      // Redimensionar ao iniciar/parar (só se não customizado e não travado)
       if (!sizeLocked) {
-        const hasCustomSize = isCompactMode ? snapshot?.floatingPanelCompactSize : snapshot?.floatingPanelSize;
+        const hasCustomSize = snapshot?.floatingPanelSize;
         if (!hasCustomSize) {
-          let width: number;
-          let height: number;
-
-          if (isCompactMode) {
-            width = isSessionRunning ? 285 : 218;
-            height = isSessionRunning ? 57 : 54;
-          } else {
-            width = isSessionRunning ? 429 : 307;
-            height = isSessionRunning ? 479 : 390;
-          }
-
+          const width = isSessionRunning ? 429 : 307;
+          const height = isSessionRunning ? 479 : 390;
           window.allus.invoke('window:setFloatingHeight', { width, height });
         }
       }
     }
-  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelCompactSize, snapshot?.floatingPanelSizeLocked]);
-
-  // Quando usuário clica no botão de modo compacto, redimensionar pro tamanho certo imediatamente
-  useEffect(() => {
-    if (!isCompactMode) return;
-    if (snapshot?.floatingPanelSizeLocked) return;
-
-    const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
-    const hasCustomSize = snapshot?.floatingPanelCompactSize;
-    if (!hasCustomSize) {
-      const width = isSessionRunning ? 285 : 218;
-      const height = isSessionRunning ? 57 : 54;
-      window.allus.invoke('window:setFloatingHeight', { width, height });
-    }
-  }, [isCompactMode, snapshot?.activeSession?.status, snapshot?.floatingPanelCompactSize, snapshot?.floatingPanelSizeLocked]);
+  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelSizeLocked]);
 
   if (!snapshot) return <div className="allus-app-bg" style={{ height: '100%' }} />;
 
@@ -224,12 +176,6 @@ export function FloatingPanel() {
   const cycleEmoji = isFocus ? '🔴' : '🟢';
   const alertColor = isAlertTime ? '#ff5fae' : 'var(--allus-text-primary)';
 
-  const handleCompactModeToggle = (newValue: boolean) => {
-    setIsCompactMode(newValue);
-    window.allus.invoke('window:setFloatingCompactMode', { isCompact: newValue });
-    window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: newValue });
-  };
-
   const isSizeLocked = snapshot?.floatingPanelSizeLocked ?? false;
   const handleSizeLockToggle = () => {
     const newValue = !isSizeLocked;
@@ -255,274 +201,6 @@ export function FloatingPanel() {
   const textMutedOpacity = panelOpacity * 0.6;
 
   // Layout compacto
-  if (isCompactMode) {
-    return (
-      <div
-        className="allus-titlebar allus-floating-root"
-        style={{
-          height: '100%',
-          padding: '4px 6px',
-          borderLeft: `3px solid ${session ? cycleColor : `rgba(255,255,255,${borderOpacity * 0.3})`}`,
-          borderRight: `2px solid ${session?.cycleKind === 'Foco' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(255,255,255,0.08)'}`,
-          overflowY: 'auto',
-          background: `rgba(13, 11, 22, ${bgOpacity})`,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-        } as any}
-      >
-        {/* Linha 1: Timer + Ícones + Botões */}
-        <div className="allus-no-drag" style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'flex-start' }}>
-          <div className="allus-drag" style={{ width: '4px', height: '24px', cursor: 'grab', flexShrink: 0 }} title="Arrastar painel" />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--allus-font-mono)', color: session ? alertColor : 'var(--allus-text-muted)' }}>
-              {session ? formatDuration(remaining) : '–'}
-            </div>
-            <Tooltip text="Modo compacto">
-              <button
-                style={{
-                  ...iconBtn,
-                  width: 28,
-                  height: 28,
-                  fontSize: 13,
-                  padding: 0,
-                  background: isCompactMode ? 'rgba(167, 139, 250, 0.2)' : 'rgba(255,255,255,0.06)',
-                  borderColor: isCompactMode ? 'rgba(167, 139, 250, 0.3)' : 'rgba(255,255,255,0.12)',
-                  color: isCompactMode ? '#c4b5fd' : 'var(--allus-text-primary)',
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => handleCompactModeToggle(!isCompactMode)}
-              >
-                ⇄
-              </button>
-            </Tooltip>
-            <Tooltip text="Opacidade">
-              <button
-                style={{
-                  ...iconBtn,
-                  width: 28,
-                  height: 28,
-                  fontSize: 13,
-                  padding: 0,
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => setShowOpacityControl((v) => !v)}
-              >
-                ◐
-              </button>
-            </Tooltip>
-            <Tooltip text="Abrir janela principal">
-              <button
-                style={{
-                  ...iconBtn,
-                  width: 28,
-                  height: 28,
-                  fontSize: 13,
-                  padding: 0,
-                  transition: 'all 0.2s ease',
-                }}
-                onClick={() => window.allus.invoke('window:openMain', undefined)}
-              >
-                ⤢
-              </button>
-            </Tooltip>
-          </div>
-          <div style={{ display: 'flex', gap: '2px' }}>
-            {session ? (
-              <>
-                <button
-                  onClick={() => invokeAction('timer:playPause', undefined)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 4,
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    background: session.status === 'Ativo' ? 'rgba(255, 184, 77, 0.2)' : 'rgba(79, 245, 227, 0.2)',
-                    color: session.status === 'Ativo' ? '#ffb84d' : '#4bf5e3',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 600,
-                  }}
-                  title={session.status === 'Ativo' ? 'Pausar' : 'Retomar'}
-                >
-                  {session.status === 'Ativo' ? '⏸' : '▶'}
-                </button>
-                <button
-                  onClick={() => (isFocus ? invokeAction('timer:skipToBreak', undefined) : invokeAction('timer:skipToFocus', undefined))}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 4,
-                    border: 'none',
-                    background: cycleColor,
-                    color: '#0d0b16',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                  }}
-                  title={skipLabel}
-                >
-                  ✓
-                </button>
-              </>
-            ) : lastTask ? (
-              <>
-                <button
-                  onClick={() => setModeSelectTask(lastTask)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 4,
-                    border: '1.5px solid rgba(79, 245, 227, 0.5)',
-                    background: 'rgba(79, 245, 227, 0.12)',
-                    color: '#4bf5e3',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 600,
-                  }}
-                  title={`Continuar: ${lastTask.title}`}
-                >
-                  ▶
-                </button>
-                <button
-                  onClick={() => setModeSelectTask({ taskId: null, title: '' })}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    padding: 0,
-                    borderRadius: 4,
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'var(--allus-text-secondary)',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 600,
-                  }}
-                  title="Escolher outra tarefa"
-                >
-                  ↻
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setShowAdd(true)}
-                style={{
-                  width: 28,
-                  height: 28,
-                  padding: 0,
-                  borderRadius: 4,
-                  border: '1.5px solid rgba(79, 245, 227, 0.4)',
-                  background: 'rgba(79, 245, 227, 0.1)',
-                  color: '#4bf5e3',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 600,
-                }}
-                title="Começar tarefa"
-              >
-                ▶
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Linha 2: Tarefa — compacta em modo compacto */}
-        {!isCompactMode && (
-          <div style={{ fontSize: 10, lineHeight: 1.1, color: session ? 'var(--allus-text-primary)' : 'var(--allus-text-muted)', wordBreak: 'break-word', minHeight: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {session ? label : 'Nenhum bloco em andamento'}
-          </div>
-        )}
-
-        {/* Barra de progresso — oculta em modo compacto */}
-        {!isCompactMode && session && (
-          <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 0, overflow: 'hidden', marginTop: '2px' }}>
-            <div
-              style={{
-                width: `${progress * 100}%`,
-                height: '100%',
-                background: cycleColor,
-                transition: 'width 0.3s ease',
-                borderRadius: 0,
-              }}
-            />
-          </div>
-        )}
-
-        {showOpacityControl && (
-          <div
-            className="allus-no-drag"
-            ref={opacityPanelRef}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000,
-            }}
-            onClick={() => setShowOpacityControl(false)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'rgba(13, 11, 22, 0.95)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 12,
-                padding: '16px',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                minWidth: '200px',
-              }}
-            >
-              <div style={{ fontSize: 12, color: 'var(--allus-text-muted)', marginBottom: '12px', fontWeight: 500 }}>Opacidade</div>
-              <input
-                type="range"
-                min={20}
-                max={100}
-                value={snapshot?.floatingPanelOpacity ?? 90}
-                onChange={(e) => invokeAction('prefs:setFloatingPanelOpacity', { opacity: Number(e.target.value) })}
-                style={{ width: '100%', cursor: 'pointer' }}
-              />
-              <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginTop: '8px', textAlign: 'center' }}>{snapshot?.floatingPanelOpacity ?? 90}%</div>
-            </div>
-          </div>
-        )}
-
-        {modeSelectTask && (
-          <TaskModeSelector
-            task={modeSelectTask}
-            recentTasks={snapshot.recentTasks}
-            onSelectTask={setModeSelectTask}
-            onClose={() => setModeSelectTask(null)}
-            cardRef={modalCardRef}
-          />
-        )}
-
-        <ToastHost />
-      </div>
-    );
-  }
 
   return (
     <div
@@ -803,20 +481,6 @@ export function FloatingPanel() {
               onClick={() => setShowAdd((v) => !v)}
             >
               +
-            </button>
-          </Tooltip>
-          <Tooltip text="Modo compacto">
-            <button
-              style={{
-                ...iconBtn,
-                transition: 'all 0.2s ease',
-                background: isCompactMode ? 'rgba(167, 139, 250, 0.2)' : 'rgba(255,255,255,0.06)',
-                borderColor: isCompactMode ? 'rgba(167, 139, 250, 0.3)' : 'rgba(255,255,255,0.12)',
-                color: isCompactMode ? '#c4b5fd' : 'var(--allus-text-primary)',
-              }}
-              onClick={() => handleCompactModeToggle(!isCompactMode)}
-            >
-              ⇄
             </button>
           </Tooltip>
           <Tooltip text={isSizeLocked ? 'Destravar tamanho' : 'Travar tamanho'}>

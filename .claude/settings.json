@@ -21,7 +21,8 @@
       "Bash(xargs grep -l \"supabase\")",
       "Bash(powershell -Command \"Test-Path 'C:\\\\Users\\\\rumye\\\\.claude\\\\plans'\")",
       "Bash(grep -E \"\\\\.\\(ico|icns|png|svg\\)$\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

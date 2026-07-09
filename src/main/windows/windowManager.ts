@@ -123,10 +123,12 @@ export function showFloatingPanel(): void {
     const savedCompactSize = snapshot.floatingPanelCompactSize;
     width = savedCompactSize?.width ?? 280;
     height = savedCompactSize?.height ?? 110;
+    console.log(`[FloatingPanel] Abrindo modo COMPACTO: ${width}×${height}px (salvo: ${savedCompactSize ? `${savedCompactSize.width}×${savedCompactSize.height}` : 'padrão'})`);
   } else {
     const savedNormalSize = snapshot.floatingPanelSize;
     width = savedNormalSize?.width ?? 280;
     height = savedNormalSize?.height ?? 320;
+    console.log(`[FloatingPanel] Abrindo modo NORMAL: ${width}×${height}px (salvo: ${savedNormalSize ? `${savedNormalSize.width}×${savedNormalSize.height}` : 'padrão'})`);
   }
 
   const win = new BrowserWindow({

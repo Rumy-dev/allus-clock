@@ -387,7 +387,8 @@ export async function skipToFocus(): Promise<void> {
   const interrupted = { ...session, status: 'Interrompido' as const, endedAt: new Date().toISOString() };
   await persistSession(interrupted);
 
-  await startFocus('Bloco de foco', session.mode);
+  // Não iniciar automaticamente — deixar o usuário escolher a próxima tarefa
+  appStore.patch({ activeSession: null });
 }
 
 export async function restart(sessionId: string): Promise<void> {

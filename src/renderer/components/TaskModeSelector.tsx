@@ -37,6 +37,7 @@ export function TaskModeSelector({ task, recentTasks, onSelectTask, onClose, car
           maxHeight: 640,
           boxShadow: '0 25px 80px rgba(0,0,0,0.4)',
           overflowY: 'auto',
+          pointerEvents: 'auto',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -64,6 +65,7 @@ export function TaskModeSelector({ task, recentTasks, onSelectTask, onClose, car
                       textAlign: 'left',
                       transition: 'all 0.2s ease',
                       fontWeight: 500,
+                      pointerEvents: 'auto',
                     }}
                   >
                     {t.taskTitle}
@@ -106,6 +108,7 @@ export function TaskModeSelector({ task, recentTasks, onSelectTask, onClose, car
                   textAlign: 'left',
                   transition: 'all 0.2s ease',
                   fontWeight: 500,
+                  pointerEvents: 'auto',
                 }}
               >
                 {POMO_MODES[mode].title} • {POMO_MODES[mode].focusSeconds / 60}m foco

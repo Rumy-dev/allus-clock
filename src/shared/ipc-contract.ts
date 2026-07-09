@@ -115,6 +115,7 @@ export interface IpcInvokeMap {
   'window:setFloatingHeight': (args: { width?: number; height?: number }) => void;
   'window:setFloatingCompactMode': (args: { isCompact: boolean }) => void;
   'window:setFloatingSizeLocked': (args: { locked: boolean }) => void;
+  'window:openDevTools': () => void;
   'state:get': () => AppSnapshot;
 }
 

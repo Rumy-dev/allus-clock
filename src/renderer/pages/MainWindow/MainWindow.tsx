@@ -266,6 +266,32 @@ export function MainWindow() {
                     </label>
                   </div>
                 </div>
+
+                <button
+                  onClick={() => window.allus.invoke('window:openDevTools', undefined).catch(() => {})}
+                  style={{
+                    marginTop: 'var(--allus-space-3)',
+                    padding: '4px 8px',
+                    fontSize: 9,
+                    color: 'var(--allus-text-muted)',
+                    background: 'transparent',
+                    border: '1px dashed rgba(255,255,255,0.1)',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  title="Abrir developer tools (F12)"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--allus-text-muted)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                  }}
+                >
+                  🔧 Console
+                </button>
               </div>
 
               {/* Bloco: Conta */}

@@ -23,7 +23,10 @@
       "Bash(grep -E \"\\\\.\\(ico|icns|png|svg\\)$\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git commit -m 'fix: Tooltip positioning - usar absolute em vez de fixed *)",
+      "Bash(git commit -m 'feat: F12 abre DevTools em qualquer janela *)",
+      "Bash(git commit -m 'feat: Botão sutil de DevTools em Preferências *)"
     ]
   }
 }

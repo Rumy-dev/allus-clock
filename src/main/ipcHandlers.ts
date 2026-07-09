@@ -154,6 +154,12 @@ export function registerIpcHandlers(): void {
       win.hide();
     }
   });
+  ipcMain.handle('window:openDevTools', (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) {
+      win.webContents.toggleDevTools();
+    }
+  });
   ipcMain.handle('window:setFloatingHeight', (_event, { width, height }: { width?: number; height?: number }) => {
     if (appStore.getSnapshot().floatingPanelSizeLocked) return;
     const win = BrowserWindow.fromWebContents(_event.sender);

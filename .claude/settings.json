@@ -17,7 +17,11 @@
       "PowerShell(Get-Process | Where-Object {$_.Name -match \"electron|forge\"} | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; Write-Output \"Processos encerrados\")",
       "PowerShell(Get-Process | Where-Object {$_.Name -match \"electron|forge\"} | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500; Write-Output \"Pronto\")",
       "PowerShell(Get-Process | Where-Object {$_.Name -match \"electron|forge\"} | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 300; Write-Output \"OK\")",
-      "Bash(pkill -f \"electron-forge start\")"
+      "Bash(pkill -f \"electron-forge start\")",
+      "Bash(xargs grep -l \"supabase\")",
+      "Bash(powershell -Command \"Test-Path 'C:\\\\Users\\\\rumye\\\\.claude\\\\plans'\")",
+      "Bash(grep -E \"\\\\.\\(ico|icns|png|svg\\)$\")",
+      "Bash(git add *)"
     ]
   }
 }

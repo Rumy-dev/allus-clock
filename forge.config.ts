@@ -3,6 +3,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -12,11 +13,22 @@ const config: ForgeConfig = {
     asar: true,
     icon: 'assets/icon',
     extraResource: ['assets'],
+    osxSign: {},
+    entitlements: 'assets/entitlements.plist',
+    extendInfo: 'assets/info.plist',
   },
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({ setupIcon: 'assets/icon.ico' }),
-    new MakerZIP({}, ['darwin']),
+    new MakerDMG({
+      format: 'ULFO',
+      iconSize: 100,
+      contents: [
+        { x: 100, y: 100, type: 'file', path: '' },
+        { x: 400, y: 100, type: 'link', path: '/Applications' },
+      ],
+    }),
+    new MakerZIP({}, ['linux']),
     new MakerRpm({}),
     new MakerDeb({}),
   ],

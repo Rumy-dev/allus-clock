@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSRequiresIPhoneOS</key>
+  <false/>
+  <key>NSUserNotificationAlertStyle</key>
+  <string>alert</string>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Allus Clock precisa de acesso à rede local para sincronização de dados.</string>
+  <key>NSBonjourServiceTypes</key>
+  <array>
+    <string>_allus._tcp</string>
+  </array>
+</dict>
+</plist>

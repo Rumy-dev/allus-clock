@@ -42,7 +42,7 @@ export function FloatingPanel() {
     const PADDING_X = 2 * 12; // var(--allus-space-3) nas duas bordas
     const PADDING_Y = 2 * 16; // var(--allus-space-4) nas duas bordas
     const BORDER_LEFT = 3;
-    const OVERLAY_MARGIN = 20; // offset dos overlays position:fixed (bottom/right/left: 20)
+    const BUTTON_SPACE = 60; // espaço extra para botão de minimizar
 
     const measure = () => {
       if (modeSelectTask) {
@@ -67,14 +67,15 @@ export function FloatingPanel() {
       const contentEl = contentRef.current;
       if (!contentEl) return;
       let width = contentEl.offsetWidth + PADDING_X + BORDER_LEFT;
-      let height = contentEl.offsetHeight + PADDING_Y;
+      let height = contentEl.offsetHeight + PADDING_Y + BUTTON_SPACE;
 
       // Painel de transparência é um overlay position:fixed — a janela
       // precisa ser grande o bastante pra ele não cortar nas bordas.
+      // Se aberto, aumenta altura para conter o overlay
       if (showOpacityControl && opacityPanelRef.current) {
         const panel = opacityPanelRef.current;
-        width = Math.max(width, panel.offsetWidth + OVERLAY_MARGIN * 2);
-        height = Math.max(height, panel.offsetHeight + OVERLAY_MARGIN * 2);
+        // Garante altura suficiente para o painel de opacidade não sair da tela
+        height = Math.max(height, panel.offsetHeight + 80);
       }
 
       applySize(width, height);
@@ -179,9 +180,11 @@ export function FloatingPanel() {
         background: `rgba(13, 11, 22, ${bgOpacity})`,
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
+        display: 'flex',
+        flexDirection: 'column',
       } as any}
     >
-      <div ref={contentRef} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-4)' }}>
+      <div ref={contentRef} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-4)', flex: 1, overflowY: 'auto' }}>
       {/* Seção superior: Status, Ciclo, Timer, Progresso */}
       <div
         className="allus-no-drag"
@@ -614,93 +617,6 @@ export function FloatingPanel() {
           cardRef={modalCardRef}
         />
       )}
-
-      {/* Controle de opacidade (overlay) */}
-      {showOpacityControl && (
-        <div
-          ref={opacityPanelRef}
-          className="allus-no-drag"
-          style={{
-            position: 'fixed',
-            bottom: 20,
-            right: 20,
-            background: `rgba(13, 11, 22, ${bgOpacity * 1.1})`,
-            backdropFilter: 'blur(16px)',
-            borderRadius: 10,
-            padding: 'var(--allus-space-3)',
-            border: `1px solid rgba(255,255,255,${borderOpacity * 0.4})`,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--allus-space-2)',
-            minWidth: 200,
-            zIndex: 999,
-          }}
-        >
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--allus-text-primary)' }}>
-            Transparência
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={snapshot?.floatingPanelOpacity ?? 90}
-            onChange={(e) => {
-              const newOpacity = parseInt(e.target.value);
-              invokeAction('prefs:setFloatingPanelOpacity', { opacity: newOpacity });
-            }}
-            style={{
-              width: '100%',
-              cursor: 'pointer',
-            }}
-          />
-          <div style={{ fontSize: 10, color: 'var(--allus-text-muted)', textAlign: 'center' }}>
-            {snapshot?.floatingPanelOpacity ?? 90}%
-          </div>
-          <button
-            onClick={() => setShowOpacityControl(false)}
-            style={{
-              padding: '6px 8px',
-              borderRadius: 6,
-              border: `1px solid rgba(255,255,255,${borderOpacity * 0.3})`,
-              background: `rgba(255,255,255,${borderOpacity * 0.05})`,
-              color: 'var(--allus-text-primary)',
-              fontSize: 10,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            ✕ Fechar
-          </button>
-        </div>
-      )}
-
-      {/* Botão flutuante de controle de opacidade */}
-      <button
-        className="allus-no-drag"
-        onClick={() => setShowOpacityControl(!showOpacityControl)}
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          left: 20,
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          border: `1px solid rgba(255,255,255,${borderOpacity * 0.4})`,
-          background: `rgba(255,255,255,${borderOpacity * 0.08})`,
-          color: 'var(--allus-text-primary)',
-          fontSize: 14,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s ease',
-          zIndex: 998,
-        }}
-        title="Controlar transparência"
-      >
-        ◐
-      </button>
 
       <ToastHost />
     </div>

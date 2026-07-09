@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import allusFocusIcon from '../../assets/allus-focus-icon.svg';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -32,6 +33,11 @@ export function Login() {
         style={{ width: 300, padding: 28, display: 'flex', flexDirection: 'column', gap: 14 }}
       >
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
+          <img
+            src={allusFocusIcon}
+            alt="Allus Focus"
+            style={{ width: 48, height: 48, marginBottom: 8 }}
+          />
           <div
             style={{
               fontSize: 22,
@@ -42,7 +48,7 @@ export function Login() {
               letterSpacing: 1,
             }}
           >
-            ALLUS CLOCK
+            ALLUS FOCUS
           </div>
           <div style={{ fontSize: 12, color: 'var(--allus-text-secondary)', marginTop: 4 }}>
             Entre com sua conta do time

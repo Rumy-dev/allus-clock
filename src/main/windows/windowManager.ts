@@ -111,9 +111,23 @@ export function showFloatingPanel(): void {
     return;
   }
   const snapshot = appStore.getSnapshot();
-  const savedSize = snapshot.floatingPanelSize;
-  const width = savedSize?.width ?? 280;
-  const height = savedSize?.height ?? 320;
+
+  // Restaurar o modo (compacto ou normal)
+  floatingPanelCompactMode = snapshot.floatingPanelIsCompactMode;
+
+  // Restaurar o tamanho apropriado para o modo
+  let width: number;
+  let height: number;
+
+  if (floatingPanelCompactMode) {
+    const savedCompactSize = snapshot.floatingPanelCompactSize;
+    width = savedCompactSize?.width ?? 280;
+    height = savedCompactSize?.height ?? 110;
+  } else {
+    const savedNormalSize = snapshot.floatingPanelSize;
+    width = savedNormalSize?.width ?? 280;
+    height = savedNormalSize?.height ?? 320;
+  }
 
   const win = new BrowserWindow({
     width,
@@ -203,9 +217,8 @@ export function setFloatingPanelCompactMode(isCompact: boolean): void {
   if (!windows.floating || windows.floating.isDestroyed()) return;
 
   const snapshot = appStore.getSnapshot();
-  const isNowCompact = isCompact;
 
-  if (isNowCompact) {
+  if (isCompact) {
     // Muda para tamanho do modo compacto
     const compactSize = snapshot.floatingPanelCompactSize;
     const width = compactSize?.width ?? 280;
@@ -220,6 +233,9 @@ export function setFloatingPanelCompactMode(isCompact: boolean): void {
     const bounds = windows.floating.getBounds();
     windows.floating.setBounds({ ...bounds, width, height });
   }
+
+  // Salvar o estado do modo (será sincronizado via IPC, mas pode ser chamado direto também)
+  appStore.patch({ floatingPanelIsCompactMode: isCompact });
 }
 
 export function showTaskCenter(): void {

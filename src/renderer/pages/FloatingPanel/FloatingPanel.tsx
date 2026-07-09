@@ -150,6 +150,7 @@ export function FloatingPanel() {
   const handleCompactModeToggle = (newValue: boolean) => {
     setIsCompactMode(newValue);
     window.allus.invoke('window:setFloatingCompactMode', { isCompact: newValue });
+    window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: newValue });
   };
 
   // Status badge — usa a mesma bolinha de status do resto do app (allus-status-dot)

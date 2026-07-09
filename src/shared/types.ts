@@ -70,6 +70,7 @@ export interface UserPreferences {
   floatingPanelOpacity: number; // 0-100, quanto mais alto mais opaco
   floatingPanelSize: { width: number; height: number } | null; // null = auto-fit (modo normal)
   floatingPanelCompactSize: { width: number; height: number } | null; // null = default (modo compacto)
+  floatingPanelIsCompactMode: boolean; // true = modo compacto, false = modo normal
   notifyFocusStart: boolean;
   notifyFocusEnd: boolean;
   notifyBreakEnd: boolean;
@@ -82,6 +83,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   floatingPanelOpacity: 90,
   floatingPanelSize: null,
   floatingPanelCompactSize: null,
+  floatingPanelIsCompactMode: false,
   notifyFocusStart: true,
   notifyFocusEnd: true,
   notifyBreakEnd: true,

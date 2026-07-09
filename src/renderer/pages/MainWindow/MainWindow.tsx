@@ -7,10 +7,23 @@ import { DateFilterBar } from '../../components/DateFilterBar';
 import { ProjectPicker } from '../../components/ProjectPicker';
 import { TaskSuggestions } from '../../components/TaskSuggestions';
 import { Tooltip } from '../../components/Tooltip';
+import { Toggle } from '../../components/Toggle';
 import { useKeyboardShortcuts } from '../../useKeyboardShortcuts';
 import { invokeAction, confirmDialog } from '../../invoke';
+import { toast } from '../../toast';
 import { POMO_MODES, displayPath, formatDuration } from '../../../shared/types';
 import type { PomoMode, PomoSession, SessionDateFilter } from '../../../shared/types';
+
+const KEYBOARD_SHORTCUTS: { keys: string; description: string }[] = [
+  { keys: 'Espaço', description: 'Play / Pausar' },
+  { keys: 'Ctrl/Cmd + T', description: 'Central de Tarefas' },
+  { keys: 'Ctrl/Cmd + H', description: 'Central de Tempos' },
+  { keys: 'Ctrl/Cmd + D', description: 'Dashboard' },
+  { keys: 'Ctrl/Cmd + P', description: 'Allus Pulse (admin)' },
+  { keys: 'Ctrl/Cmd + F', description: 'Focar última tarefa / retomar' },
+  { keys: 'Ctrl/Cmd + B', description: 'Pular bloco (foco ↔ pausa)' },
+  { keys: 'Esc', description: 'Fechar janela / modal' },
+];
 
 export function MainWindow() {
   const snapshot = useAppState();
@@ -32,6 +45,9 @@ export function MainWindow() {
   const [nameField, setNameField] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
   const [myHoursSeconds, setMyHoursSeconds] = useState<number | null>(null);
+  const [appInfo, setAppInfo] = useState<{ version: string; isDev: boolean; platform: string } | null>(null);
+  const [showNotifPrefs, setShowNotifPrefs] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +76,17 @@ export function MainWindow() {
       cancelled = true;
     };
   }, [showAccount, snapshot?.auth.profile?.id]);
+
+  useEffect(() => {
+    if (!showAccount || appInfo) return;
+    let cancelled = false;
+    invokeAction('app:getInfo', undefined).then((info) => {
+      if (!cancelled && info) setAppInfo(info);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showAccount, appInfo]);
 
   useKeyboardShortcuts({
     onPlayPause: () => invokeAction('timer:playPause', undefined),
@@ -119,6 +146,7 @@ export function MainWindow() {
       setNewPassword('');
       setShowPasswordForm(false);
       setShowAccount(false);
+      toast.success('Senha alterada com sucesso');
     }
   }
 
@@ -128,6 +156,7 @@ export function MainWindow() {
     setNameSaving(true);
     await invokeAction('account:updateName', { fullName: nameField.trim() });
     setNameSaving(false);
+    toast.success('Nome atualizado');
   }
 
   async function handleDeleteSession(sessionId: string) {
@@ -156,148 +185,255 @@ export function MainWindow() {
           {showAccount && (
             <div
               className="allus-glass"
-              style={{ position: 'absolute', right: 0, marginTop: 6, padding: 14, width: 280, zIndex: 60, display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-5)', maxHeight: '80vh', overflowY: 'auto' }}
+              style={{ position: 'absolute', right: 0, marginTop: 6, padding: 0, width: 300, zIndex: 60, display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}
             >
-              {/* Bloco: Perfil */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)' }}>
-                <div style={sectionHeadingStyle}>Perfil</div>
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 6 }}>Nome de exibição</div>
-                  <form onSubmit={submitNameChange} style={{ display: 'flex', gap: 6 }}>
-                    <input value={nameField} onChange={(e) => setNameField(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
-                    <button type="submit" style={pillButtonStyle} disabled={nameSaving}>
-                      {nameSaving ? '...' : 'Salvar'}
-                    </button>
-                  </form>
+              <div style={{ overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-5)' }}>
+                {/* Cabeçalho: avatar + nome + função */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: 'var(--allus-yellow)',
+                      color: '#000001',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 15,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {getInitials(snapshot.auth.profile?.fullName)}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {snapshot.auth.profile?.fullName ?? 'Conta'}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                        color: 'var(--allus-text-muted)',
+                        border: '1px solid var(--allus-glass-border)',
+                        borderRadius: 999,
+                        padding: '1px 6px',
+                        display: 'inline-block',
+                        marginTop: 2,
+                      }}
+                    >
+                      {snapshot.auth.profile?.role === 'admin' ? 'Admin' : 'Membro'}
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 6 }}>Modo padrão</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {(Object.keys(POMO_MODES) as PomoMode[]).map((mode) => (
-                      <button
-                        key={mode}
-                        onClick={() => invokeAction('timer:setMode', { mode })}
-                        style={{
-                          ...pillButtonStyle,
-                          backgroundImage: snapshot.selectedMode === mode ? 'var(--allus-gradient)' : undefined,
-                          color: snapshot.selectedMode === mode ? '#000001' : undefined,
-                          fontSize: 11,
-                        }}
-                      >
-                        {POMO_MODES[mode].title}
+                {/* Bloco: Perfil */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)' }}>
+                  <div style={sectionHeadingStyle}>Perfil</div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 6 }}>Nome de exibição</div>
+                    <form onSubmit={submitNameChange} style={{ display: 'flex', gap: 6 }}>
+                      <input value={nameField} onChange={(e) => setNameField(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                      <button type="submit" style={pillButtonStyle} disabled={nameSaving}>
+                        {nameSaving ? '...' : 'Salvar'}
                       </button>
-                    ))}
+                    </form>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 6 }}>Modo padrão</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(Object.keys(POMO_MODES) as PomoMode[]).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => invokeAction('timer:setMode', { mode })}
+                          style={{
+                            ...pillButtonStyle,
+                            backgroundImage: snapshot.selectedMode === mode ? 'var(--allus-gradient)' : undefined,
+                            color: snapshot.selectedMode === mode ? '#000001' : undefined,
+                            fontSize: 11,
+                          }}
+                        >
+                          {POMO_MODES[mode].title}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Bloco: Minhas Horas */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
-                <div style={sectionHeadingStyle}>Minhas horas</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>
-                  {myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}
+                {/* Bloco: Minhas Horas */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
+                  <div style={sectionHeadingStyle}>Minhas horas</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>
+                    {myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--allus-text-muted)' }}>Últimos 7 dias</div>
+                  <button
+                    style={{ ...pillButtonStyle, alignSelf: 'flex-start', fontSize: 11 }}
+                    onClick={() => window.allus.invoke('window:openTimeCenter', undefined)}
+                  >
+                    Ver histórico completo →
+                  </button>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--allus-text-muted)' }}>Últimos 7 dias</div>
-                <button
-                  style={{ ...pillButtonStyle, alignSelf: 'flex-start', fontSize: 11 }}
-                  onClick={() => window.allus.invoke('window:openTimeCenter', undefined)}
-                >
-                  Ver histórico completo →
-                </button>
-              </div>
 
-              {/* Bloco: Preferências */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
-                <div style={sectionHeadingStyle}>Preferências</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                {/* Bloco: Painel flutuante */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
+                  <div style={sectionHeadingStyle}>Painel flutuante</div>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 6 }}>
+                      Opacidade — {snapshot.floatingPanelOpacity}%
+                    </div>
                     <input
-                      type="checkbox"
+                      type="range"
+                      min={20}
+                      max={100}
+                      value={snapshot.floatingPanelOpacity}
+                      onChange={(e) => invokeAction('prefs:setFloatingPanelOpacity', { opacity: Number(e.target.value) })}
+                      style={{ width: '100%', cursor: 'pointer' }}
+                    />
+                  </div>
+                  <Toggle
+                    checked={snapshot.floatingPanelSizeLocked}
+                    onChange={(checked) => {
+                      window.allus.invoke('window:setFloatingSizeLocked', { locked: checked });
+                      invokeAction('prefs:setFloatingPanelSizeLocked', { locked: checked });
+                    }}
+                    label="Travar tamanho do painel"
+                  />
+                </div>
+
+                {/* Bloco: Preferências */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
+                  <div style={sectionHeadingStyle}>Preferências</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Toggle
                       checked={snapshot.soundEnabled}
-                      onChange={(e) => invokeAction('prefs:setSound', { enabled: e.target.checked })}
+                      onChange={(checked) => invokeAction('prefs:setSound', { enabled: checked })}
+                      label="Som ao concluir bloco"
                     />
-                    Som ao concluir bloco
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                    <input
-                      type="checkbox"
+                    <Toggle
                       checked={snapshot.floatingMinimizable}
-                      onChange={(e) => invokeAction('prefs:setFloatingMinimizable', { enabled: e.target.checked })}
+                      onChange={(checked) => invokeAction('prefs:setFloatingMinimizable', { enabled: checked })}
+                      label="Painel flutuante minimiza com a janela principal"
                     />
-                    Painel flutuante minimiza com a janela principal
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                    <input
-                      type="checkbox"
+                    <Toggle
                       checked={snapshot.autoLaunchEnabled}
-                      onChange={(e) => invokeAction('prefs:setAutoLaunch', { enabled: e.target.checked })}
+                      onChange={(checked) => invokeAction('prefs:setAutoLaunch', { enabled: checked })}
+                      label="Iniciar automaticamente com o Windows"
                     />
-                    Iniciar automaticamente com o Windows
-                  </label>
-                </div>
+                  </div>
 
-                <div>
-                  <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 6 }}>Notificações</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={snapshot.auth.profile?.preferences.notifyFocusStart ?? true}
-                        onChange={(e) => invokeAction('prefs:setNotify', { event: 'focusStart', enabled: e.target.checked })}
-                      />
-                      Início de bloco de foco
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={snapshot.auth.profile?.preferences.notifyFocusEnd ?? true}
-                        onChange={(e) => invokeAction('prefs:setNotify', { event: 'focusEnd', enabled: e.target.checked })}
-                      />
-                      Fim de foco (início da pausa)
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={snapshot.auth.profile?.preferences.notifyBreakEnd ?? true}
-                        onChange={(e) => invokeAction('prefs:setNotify', { event: 'breakEnd', enabled: e.target.checked })}
-                      />
-                      Fim de pausa
-                    </label>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNotifPrefs((v) => !v)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--allus-text-muted)',
+                        fontSize: 11,
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        marginBottom: showNotifPrefs ? 6 : 0,
+                      }}
+                    >
+                      {showNotifPrefs ? '▾' : '▸'} Notificações
+                    </button>
+                    {showNotifPrefs && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 2 }}>
+                        <Toggle
+                          checked={snapshot.auth.profile?.preferences.notifyFocusStart ?? true}
+                          onChange={(checked) => invokeAction('prefs:setNotify', { event: 'focusStart', enabled: checked })}
+                          label="Início de bloco de foco"
+                        />
+                        <Toggle
+                          checked={snapshot.auth.profile?.preferences.notifyFocusEnd ?? true}
+                          onChange={(checked) => invokeAction('prefs:setNotify', { event: 'focusEnd', enabled: checked })}
+                          label="Fim de foco (início da pausa)"
+                        />
+                        <Toggle
+                          checked={snapshot.auth.profile?.preferences.notifyBreakEnd ?? true}
+                          onChange={(checked) => invokeAction('prefs:setNotify', { event: 'breakEnd', enabled: checked })}
+                          label="Fim de pausa"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <button
-                  onClick={() => window.allus.invoke('window:openDevTools', undefined).catch(() => {})}
-                  style={{
-                    marginTop: 'var(--allus-space-3)',
-                    padding: '4px 8px',
-                    fontSize: 9,
-                    color: 'var(--allus-text-muted)',
-                    background: 'transparent',
-                    border: '1px dashed rgba(255,255,255,0.1)',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  title="Abrir developer tools (F12)"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--allus-text-muted)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                  }}
-                >
-                  🔧 Console
-                </button>
+                {/* Bloco: Atalhos de teclado */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowShortcuts((v) => !v)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--allus-text-muted)', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    {showShortcuts ? '▾' : '▸'} Atalhos de teclado
+                  </button>
+                  {showShortcuts && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                      {KEYBOARD_SHORTCUTS.map((s) => (
+                        <div key={s.keys} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11 }}>
+                          <span style={{ color: 'var(--allus-text-secondary)' }}>{s.description}</span>
+                          <span style={{ fontFamily: 'var(--allus-font-mono)', color: 'var(--allus-text-muted)', whiteSpace: 'nowrap' }}>{s.keys}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bloco: Sobre */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
+                  <span style={{ fontSize: 10, color: 'var(--allus-text-muted)' }}>
+                    Allus Clock {appInfo ? `v${appInfo.version}` : ''}
+                  </span>
+                  {appInfo?.isDev && (
+                    <button
+                      onClick={() => window.allus.invoke('window:openDevTools', undefined).catch(() => {})}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: 9,
+                        color: 'var(--allus-text-muted)',
+                        background: 'transparent',
+                        border: '1px dashed rgba(255,255,255,0.1)',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      title="Abrir developer tools (F12)"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = 'var(--allus-text-muted)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                      }}
+                    >
+                      🔧 Console
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Bloco: Conta */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-3)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
-                <div style={sectionHeadingStyle}>Conta</div>
-
+              {/* Zona de perigo: senha + sair — fixada no rodapé do dropdown */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--allus-space-3)',
+                  padding: 14,
+                  borderTop: '1px solid rgba(255,107,107,0.25)',
+                  background: 'rgba(255,107,107,0.05)',
+                  flexShrink: 0,
+                }}
+              >
                 {!showPasswordForm ? (
                   <button
                     type="button"
@@ -338,7 +474,13 @@ export function MainWindow() {
                 )}
 
                 <button
-                  style={{ ...pillButtonStyle, width: '100%', color: 'var(--allus-status-interrompido)' }}
+                  style={{
+                    ...pillButtonStyle,
+                    width: '100%',
+                    color: 'var(--allus-status-interrompido)',
+                    border: '1px solid rgba(255,107,107,0.4)',
+                    fontWeight: 600,
+                  }}
                   onClick={() => invokeAction('auth:signOut', undefined)}
                 >
                   Sair da conta
@@ -677,6 +819,13 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
   fontSize: 13,
 };
+
+function getInitials(fullName: string | undefined): string {
+  if (!fullName) return '?';
+  const parts = fullName.trim().split(/\s+/);
+  const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : parts[0].slice(0, 2);
+  return initials.toUpperCase();
+}
 
 function formatHoursSummary(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);

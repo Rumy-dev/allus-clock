@@ -156,6 +156,11 @@ export function registerIpcHandlers(): void {
       win.webContents.toggleDevTools();
     }
   });
+  handle('app:getInfo', async () => ({
+    version: app.getVersion(),
+    isDev: !app.isPackaged,
+    platform: process.platform,
+  }));
   ipcMain.handle('window:setFloatingHeight', (_event, { width, height }: { width?: number; height?: number }) => {
     if (appStore.getSnapshot().floatingPanelSizeLocked) return;
     const win = BrowserWindow.fromWebContents(_event.sender);

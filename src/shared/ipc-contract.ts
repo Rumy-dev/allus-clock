@@ -93,8 +93,6 @@ export interface IpcInvokeMap {
   'prefs:setFloatingMinimizable': (args: { enabled: boolean }) => void;
   'prefs:setFloatingPanelOpacity': (args: { opacity: number }) => void;
   'prefs:setFloatingPanelSize': (args: { size: { width: number; height: number } | null }) => void;
-  'prefs:setFloatingPanelCompactSize': (args: { size: { width: number; height: number } | null }) => void;
-  'prefs:setFloatingPanelIsCompactMode': (args: { isCompact: boolean }) => void;
   'prefs:setFloatingPanelSizeLocked': (args: { locked: boolean }) => void;
   'prefs:setNotify': (args: { event: 'focusStart' | 'focusEnd' | 'breakEnd'; enabled: boolean }) => void;
   'prefs:setAutoLaunch': (args: { enabled: boolean }) => void;
@@ -113,7 +111,6 @@ export interface IpcInvokeMap {
   'window:minimizeSelf': () => void;
   'window:closeSelf': () => void;
   'window:setFloatingHeight': (args: { width?: number; height?: number }) => void;
-  'window:setFloatingCompactMode': (args: { isCompact: boolean }) => void;
   'window:setFloatingSizeLocked': (args: { locked: boolean }) => void;
   'window:openDevTools': () => void;
   'state:get': () => AppSnapshot;

@@ -103,14 +103,6 @@ export function registerIpcHandlers(): void {
     await authManager.updatePreferences({ floatingPanelSize: size });
     appStore.patch({ floatingPanelSize: size });
   });
-  handle('prefs:setFloatingPanelCompactSize', async ({ size }) => {
-    await authManager.updatePreferences({ floatingPanelCompactSize: size });
-    appStore.patch({ floatingPanelCompactSize: size });
-  });
-  handle('prefs:setFloatingPanelIsCompactMode', async ({ isCompact }) => {
-    await authManager.updatePreferences({ floatingPanelIsCompactMode: isCompact });
-    appStore.patch({ floatingPanelIsCompactMode: isCompact });
-  });
   handle('prefs:setFloatingPanelSizeLocked', async ({ locked }) => {
     await authManager.updatePreferences({ floatingPanelSizeLocked: locked });
     appStore.patch({ floatingPanelSizeLocked: locked });
@@ -171,10 +163,6 @@ export function registerIpcHandlers(): void {
         height: height !== undefined ? Math.min(Math.max(height, 50), 700) : bounds.height,
       });
     }
-  });
-
-  ipcMain.handle('window:setFloatingCompactMode', async (_event, { isCompact }: { isCompact: boolean }) => {
-    windowManager.setFloatingPanelCompactMode(isCompact);
   });
 
   ipcMain.handle('window:setFloatingSizeLocked', async (_event, { locked }: { locked: boolean }) => {

@@ -13,7 +13,6 @@ export function setQuitting(value: boolean): void {
   isQuitting = value;
 }
 
-let floatingPanelCompactMode = false;
 let floatingResizeTimeout: NodeJS.Timeout | null = null;
 
 const windows: {
@@ -185,31 +184,23 @@ export function showFloatingPanel(): void {
   }
 
   const snapshot = appStore.getSnapshot();
-  floatingPanelCompactMode = snapshot.floatingPanelIsCompactMode ?? false;
   const sizeLocked = snapshot.floatingPanelSizeLocked ?? false;
   const hasActiveSession = snapshot.activeSession?.status === 'Ativo';
 
+  // O "modo compacto" foi removido da interface (a janela sempre renderiza
+  // o layout normal agora), mas contas com a preferência antiga ainda
+  // gravada (floatingPanelIsCompactMode: true) abriam a janela em ~218x54px
+  // — pequena demais pro layout atual, deixando os botões inacessíveis.
+  // Ignoramos essa preferência aqui e sempre usamos o tamanho normal.
   let width: number;
   let height: number;
-
-  if (floatingPanelCompactMode) {
-    const savedSize = snapshot.floatingPanelCompactSize;
-    if (savedSize?.width && savedSize?.height) {
-      width = savedSize.width;
-      height = savedSize.height;
-    } else {
-      width = hasActiveSession ? 285 : 218;
-      height = hasActiveSession ? 57 : 54;
-    }
+  const savedSize = snapshot.floatingPanelSize;
+  if (savedSize?.width && savedSize?.height) {
+    width = savedSize.width;
+    height = savedSize.height;
   } else {
-    const savedSize = snapshot.floatingPanelSize;
-    if (savedSize?.width && savedSize?.height) {
-      width = savedSize.width;
-      height = savedSize.height;
-    } else {
-      width = hasActiveSession ? 429 : 307;
-      height = hasActiveSession ? 479 : 390;
-    }
+    width = hasActiveSession ? 429 : 307;
+    height = hasActiveSession ? 479 : 390;
   }
 
   const win = new BrowserWindow({
@@ -238,14 +229,8 @@ export function showFloatingPanel(): void {
     floatingResizeTimeout = setTimeout(() => {
       const bounds = win.getBounds();
       const size = { width: bounds.width, height: bounds.height };
-
-      if (floatingPanelCompactMode) {
-        appStore.patch({ floatingPanelCompactSize: size });
-        authManager.updatePreferences({ floatingPanelCompactSize: size }).catch(() => {});
-      } else {
-        appStore.patch({ floatingPanelSize: size });
-        authManager.updatePreferences({ floatingPanelSize: size }).catch(() => {});
-      }
+      appStore.patch({ floatingPanelSize: size });
+      authManager.updatePreferences({ floatingPanelSize: size }).catch(() => {});
     }, 300);
   });
 
@@ -299,65 +284,8 @@ export function setFloatingPanelSizeLocked(locked: boolean): void {
 }
 
 export function resetFloatingPanelToNormal(): void {
-  // Quando abre via botão na página principal, resetar para modo normal
-  floatingPanelCompactMode = false;
-}
-
-export function setFloatingPanelCompactMode(isCompact: boolean): void {
-  floatingPanelCompactMode = isCompact;
-  if (!windows.floating || windows.floating.isDestroyed()) return;
-
-  const snapshot = appStore.getSnapshot();
-  const hasActiveSession = snapshot.activeSession?.status === 'Ativo';
-
-  if (isCompact) {
-    // Muda para tamanho do modo compacto
-    const compactSize = snapshot.floatingPanelCompactSize;
-    let width: number;
-    let height: number;
-
-    if (compactSize) {
-      width = compactSize.width;
-      height = compactSize.height;
-    } else {
-      // Usar tamanho padrão baseado no estado
-      if (hasActiveSession) {
-        width = 285;  // Compacto rodando
-        height = 57;
-      } else {
-        width = 218;  // Compacto parado
-        height = 54;
-      }
-    }
-
-    const bounds = windows.floating.getBounds();
-    windows.floating.setBounds({ ...bounds, width, height });
-  } else {
-    // Muda para tamanho do modo normal
-    const normalSize = snapshot.floatingPanelSize;
-    let width: number;
-    let height: number;
-
-    if (normalSize) {
-      width = normalSize.width;
-      height = normalSize.height;
-    } else {
-      // Usar tamanho padrão baseado no estado
-      if (hasActiveSession) {
-        width = 429;  // Normal rodando
-        height = 479;
-      } else {
-        width = 307;  // Normal parado
-        height = 390;
-      }
-    }
-
-    const bounds = windows.floating.getBounds();
-    windows.floating.setBounds({ ...bounds, width, height });
-  }
-
-  // Salvar o estado do modo (será sincronizado via IPC, mas pode ser chamado direto também)
-  appStore.patch({ floatingPanelIsCompactMode: isCompact });
+  // O "modo compacto" foi removido da interface — essa função só existe
+  // porque window:openFloating ainda a chama; não faz mais nada.
 }
 
 export function showTaskCenter(): void {

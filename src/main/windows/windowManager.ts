@@ -113,6 +113,7 @@ export function showFloatingPanel(): void {
 
   const snapshot = appStore.getSnapshot();
   floatingPanelCompactMode = snapshot.floatingPanelIsCompactMode ?? false;
+  const sizeLocked = snapshot.floatingPanelSizeLocked ?? false;
   const hasActiveSession = snapshot.activeSession?.status === 'Ativo';
 
   let width: number;
@@ -145,7 +146,7 @@ export function showFloatingPanel(): void {
     y: undefined,
     frame: false,
     transparent: true,
-    resizable: true,
+    resizable: !sizeLocked,
     minWidth: 100,
     minHeight: 110,
     alwaysOnTop: true,
@@ -158,6 +159,7 @@ export function showFloatingPanel(): void {
 
   // Salvar tamanho quando usuário redimensiona manualmente (com debounce)
   win.on('resized', () => {
+    if (appStore.getSnapshot().floatingPanelSizeLocked) return;
     if (floatingResizeTimeout) clearTimeout(floatingResizeTimeout);
 
     floatingResizeTimeout = setTimeout(() => {
@@ -217,6 +219,12 @@ export function togglePulse(): void {
   }
 }
 
+export function setFloatingPanelSizeLocked(locked: boolean): void {
+  if (windows.floating && !windows.floating.isDestroyed()) {
+    windows.floating.setResizable(!locked);
+  }
+}
+
 export function resetFloatingPanelToNormal(): void {
   // Quando abre via botão na página principal, resetar para modo normal
   floatingPanelCompactMode = false;
@@ -227,7 +235,8 @@ export function setFloatingPanelCompactMode(isCompact: boolean): void {
   if (!windows.floating || windows.floating.isDestroyed()) return;
 
   const snapshot = appStore.getSnapshot();
-  const hasActiveSession = snapshot.activeSession !== null;
+  if (snapshot.floatingPanelSizeLocked) return;
+  const hasActiveSession = snapshot.activeSession?.status === 'Ativo';
 
   if (isCompact) {
     // Muda para tamanho do modo compacto

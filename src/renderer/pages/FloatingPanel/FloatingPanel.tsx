@@ -130,6 +130,7 @@ export function FloatingPanel() {
   useEffect(() => {
     const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
     const wasSessionRunning = wasSessionActiveRef.current;
+    const sizeLocked = snapshot?.floatingPanelSizeLocked ?? false;
 
     if (isSessionRunning !== wasSessionRunning) {
       wasSessionActiveRef.current = isSessionRunning;
@@ -140,35 +141,40 @@ export function FloatingPanel() {
         window.allus.invoke('window:setFloatingCompactMode', { isCompact: false });
         window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: false });
 
-        const hasCustomSize = snapshot?.floatingPanelSize;
-        if (!hasCustomSize) {
-          window.allus.invoke('window:setFloatingHeight', { width: 307, height: 390 });
+        if (!sizeLocked) {
+          const hasCustomSize = snapshot?.floatingPanelSize;
+          if (!hasCustomSize) {
+            window.allus.invoke('window:setFloatingHeight', { width: 307, height: 390 });
+          }
         }
         return;
       }
 
-      // Redimensionar ao iniciar/parar (só se não customizado)
-      const hasCustomSize = isCompactMode ? snapshot?.floatingPanelCompactSize : snapshot?.floatingPanelSize;
-      if (!hasCustomSize) {
-        let width: number;
-        let height: number;
+      // Redimensionar ao iniciar/parar (só se não customizado e não travado)
+      if (!sizeLocked) {
+        const hasCustomSize = isCompactMode ? snapshot?.floatingPanelCompactSize : snapshot?.floatingPanelSize;
+        if (!hasCustomSize) {
+          let width: number;
+          let height: number;
 
-        if (isCompactMode) {
-          width = isSessionRunning ? 285 : 218;
-          height = isSessionRunning ? 57 : 54;
-        } else {
-          width = isSessionRunning ? 429 : 307;
-          height = isSessionRunning ? 479 : 390;
+          if (isCompactMode) {
+            width = isSessionRunning ? 285 : 218;
+            height = isSessionRunning ? 57 : 54;
+          } else {
+            width = isSessionRunning ? 429 : 307;
+            height = isSessionRunning ? 479 : 390;
+          }
+
+          window.allus.invoke('window:setFloatingHeight', { width, height });
         }
-
-        window.allus.invoke('window:setFloatingHeight', { width, height });
       }
     }
-  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelCompactSize]);
+  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelCompactSize, snapshot?.floatingPanelSizeLocked]);
 
   // Quando usuário clica no botão de modo compacto, redimensionar pro tamanho certo imediatamente
   useEffect(() => {
     if (!isCompactMode) return;
+    if (snapshot?.floatingPanelSizeLocked) return;
 
     const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
     const hasCustomSize = snapshot?.floatingPanelCompactSize;
@@ -177,7 +183,7 @@ export function FloatingPanel() {
       const height = isSessionRunning ? 57 : 54;
       window.allus.invoke('window:setFloatingHeight', { width, height });
     }
-  }, [isCompactMode, snapshot?.activeSession?.status, snapshot?.floatingPanelCompactSize]);
+  }, [isCompactMode, snapshot?.activeSession?.status, snapshot?.floatingPanelCompactSize, snapshot?.floatingPanelSizeLocked]);
 
   if (!snapshot) return <div className="allus-app-bg" style={{ height: '100%' }} />;
 
@@ -222,6 +228,13 @@ export function FloatingPanel() {
     setIsCompactMode(newValue);
     window.allus.invoke('window:setFloatingCompactMode', { isCompact: newValue });
     window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: newValue });
+  };
+
+  const isSizeLocked = snapshot?.floatingPanelSizeLocked ?? false;
+  const handleSizeLockToggle = () => {
+    const newValue = !isSizeLocked;
+    window.allus.invoke('window:setFloatingSizeLocked', { locked: newValue });
+    window.allus.invoke('prefs:setFloatingPanelSizeLocked', { locked: newValue });
   };
 
   // Status badge — usa a mesma bolinha de status do resto do app (allus-status-dot)
@@ -701,6 +714,20 @@ export function FloatingPanel() {
                 ▶ Começar
               </button>
             )}
+            <Tooltip text={isSizeLocked ? 'Destravar tamanho' : 'Travar tamanho'}>
+              <button
+                style={{
+                  ...iconBtn,
+                  transition: 'all 0.2s ease',
+                  background: isSizeLocked ? 'rgba(255, 184, 77, 0.2)' : 'rgba(255,255,255,0.06)',
+                  borderColor: isSizeLocked ? 'rgba(255, 184, 77, 0.3)' : 'rgba(255,255,255,0.12)',
+                  color: isSizeLocked ? '#ffb84d' : 'var(--allus-text-primary)',
+                }}
+                onClick={handleSizeLockToggle}
+              >
+                {isSizeLocked ? '🔒' : '🔓'}
+              </button>
+            </Tooltip>
             <Tooltip text="Opacidade">
               <button
                 style={{
@@ -787,9 +814,23 @@ export function FloatingPanel() {
                 borderColor: isCompactMode ? 'rgba(167, 139, 250, 0.3)' : 'rgba(255,255,255,0.12)',
                 color: isCompactMode ? '#c4b5fd' : 'var(--allus-text-primary)',
               }}
-              onClick={() => setIsCompactMode((v) => !v)}
+              onClick={() => handleCompactModeToggle(!isCompactMode)}
             >
               ⇄
+            </button>
+          </Tooltip>
+          <Tooltip text={isSizeLocked ? 'Destravar tamanho' : 'Travar tamanho'}>
+            <button
+              style={{
+                ...iconBtn,
+                transition: 'all 0.2s ease',
+                background: isSizeLocked ? 'rgba(255, 184, 77, 0.2)' : 'rgba(255,255,255,0.06)',
+                borderColor: isSizeLocked ? 'rgba(255, 184, 77, 0.3)' : 'rgba(255,255,255,0.12)',
+                color: isSizeLocked ? '#ffb84d' : 'var(--allus-text-primary)',
+              }}
+              onClick={handleSizeLockToggle}
+            >
+              {isSizeLocked ? '🔒' : '🔓'}
             </button>
           </Tooltip>
           <Tooltip text="Opacidade">

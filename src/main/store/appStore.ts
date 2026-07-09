@@ -26,6 +26,7 @@ let state: AppSnapshot = {
   floatingPanelSize: DEFAULT_PREFERENCES.floatingPanelSize,
   floatingPanelCompactSize: DEFAULT_PREFERENCES.floatingPanelCompactSize,
   floatingPanelIsCompactMode: DEFAULT_PREFERENCES.floatingPanelIsCompactMode,
+  floatingPanelSizeLocked: DEFAULT_PREFERENCES.floatingPanelSizeLocked,
   autoLaunchEnabled: false,
   recentTasks: [],
   profiles: [],

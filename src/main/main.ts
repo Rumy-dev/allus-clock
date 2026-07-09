@@ -54,6 +54,10 @@ app.whenReady().then(async () => {
         soundEnabled: state.profile.preferences.soundEnabled,
         floatingMinimizable: state.profile.preferences.floatingMinimizable,
         floatingPanelOpacity: state.profile.preferences.floatingPanelOpacity,
+        floatingPanelSize: state.profile.preferences.floatingPanelSize,
+        floatingPanelCompactSize: state.profile.preferences.floatingPanelCompactSize,
+        floatingPanelIsCompactMode: state.profile.preferences.floatingPanelIsCompactMode,
+        floatingPanelSizeLocked: state.profile.preferences.floatingPanelSizeLocked,
         selectedMode: state.profile.preferences.selectedMode,
       });
 

@@ -111,6 +111,10 @@ export function registerIpcHandlers(): void {
     await authManager.updatePreferences({ floatingPanelIsCompactMode: isCompact });
     appStore.patch({ floatingPanelIsCompactMode: isCompact });
   });
+  handle('prefs:setFloatingPanelSizeLocked', async ({ locked }) => {
+    await authManager.updatePreferences({ floatingPanelSizeLocked: locked });
+    appStore.patch({ floatingPanelSizeLocked: locked });
+  });
   handle('prefs:setNotify', async ({ event, enabled }) => {
     const key = (`notify${event.charAt(0).toUpperCase()}${event.slice(1)}`) as
       | 'notifyFocusStart'
@@ -148,19 +152,24 @@ export function registerIpcHandlers(): void {
     BrowserWindow.fromWebContents(event.sender)?.close();
   });
   ipcMain.handle('window:setFloatingHeight', (_event, { width, height }: { width?: number; height?: number }) => {
+    if (appStore.getSnapshot().floatingPanelSizeLocked) return;
     const win = BrowserWindow.fromWebContents(_event.sender);
     if (win) {
       const bounds = win.getBounds();
       win.setBounds({
         ...bounds,
-        width: width !== undefined ? Math.min(Math.max(width, 280), 420) : bounds.width,
-        height: height !== undefined ? Math.min(Math.max(height, 200), 700) : bounds.height,
+        width: width !== undefined ? Math.min(Math.max(width, 200), 700) : bounds.width,
+        height: height !== undefined ? Math.min(Math.max(height, 50), 700) : bounds.height,
       });
     }
   });
 
   ipcMain.handle('window:setFloatingCompactMode', async (_event, { isCompact }: { isCompact: boolean }) => {
     windowManager.setFloatingPanelCompactMode(isCompact);
+  });
+
+  ipcMain.handle('window:setFloatingSizeLocked', async (_event, { locked }: { locked: boolean }) => {
+    windowManager.setFloatingPanelSizeLocked(locked);
   });
 
 }

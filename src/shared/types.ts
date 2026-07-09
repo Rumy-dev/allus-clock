@@ -71,6 +71,7 @@ export interface UserPreferences {
   floatingPanelSize: { width: number; height: number } | null; // null = auto-fit (modo normal)
   floatingPanelCompactSize: { width: number; height: number } | null; // null = default (modo compacto)
   floatingPanelIsCompactMode: boolean; // true = modo compacto, false = modo normal
+  floatingPanelSizeLocked: boolean; // true = tamanho travado, ignora auto-resize e não é redimensionável
   notifyFocusStart: boolean;
   notifyFocusEnd: boolean;
   notifyBreakEnd: boolean;
@@ -84,6 +85,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   floatingPanelSize: null,
   floatingPanelCompactSize: null,
   floatingPanelIsCompactMode: false,
+  floatingPanelSizeLocked: false,
   notifyFocusStart: true,
   notifyFocusEnd: true,
   notifyBreakEnd: true,

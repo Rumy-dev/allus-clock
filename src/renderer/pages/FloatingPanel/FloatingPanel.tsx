@@ -125,17 +125,17 @@ export function FloatingPanel() {
     }
   }, [modeSelectTask, isCompactMode]);
 
-  // Modo compacto só existe enquanto há tarefa rodando.
-  // Quando a sessão para, reverte automaticamente pro modo normal.
+  // Modo compacto só existe quando sessão está RODANDO (Ativo).
+  // Se pausou ou parou, reverte automaticamente.
   useEffect(() => {
-    const isSessionActive = snapshot?.activeSession !== null && snapshot?.activeSession !== undefined;
-    const wasSessionActive = wasSessionActiveRef.current;
+    const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
+    const wasSessionRunning = wasSessionActiveRef.current;
 
-    if (isSessionActive !== wasSessionActive) {
-      wasSessionActiveRef.current = isSessionActive;
+    if (isSessionRunning !== wasSessionRunning) {
+      wasSessionActiveRef.current = isSessionRunning;
 
-      if (!isSessionActive && isCompactMode) {
-        // Sessão parou enquanto estava em modo compacto: reverter pra normal
+      if (!isSessionRunning && isCompactMode) {
+        // Sessão parou/pausou em modo compacto: reverter pra normal
         setIsCompactMode(false);
         window.allus.invoke('window:setFloatingCompactMode', { isCompact: false });
         window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: false });
@@ -147,24 +147,37 @@ export function FloatingPanel() {
         return;
       }
 
-      // Redimensionar automaticamente (só se não houver customização manual)
+      // Redimensionar ao iniciar/parar (só se não customizado)
       const hasCustomSize = isCompactMode ? snapshot?.floatingPanelCompactSize : snapshot?.floatingPanelSize;
       if (!hasCustomSize) {
         let width: number;
         let height: number;
 
         if (isCompactMode) {
-          width = isSessionActive ? 285 : 218;
-          height = isSessionActive ? 57 : 54;
+          width = isSessionRunning ? 285 : 218;
+          height = isSessionRunning ? 57 : 54;
         } else {
-          width = isSessionActive ? 429 : 307;
-          height = isSessionActive ? 479 : 390;
+          width = isSessionRunning ? 429 : 307;
+          height = isSessionRunning ? 479 : 390;
         }
 
         window.allus.invoke('window:setFloatingHeight', { width, height });
       }
     }
-  }, [snapshot?.activeSession, isCompactMode, snapshot?.floatingPanelSize, snapshot?.floatingPanelCompactSize]);
+  }, [snapshot?.activeSession?.status, snapshot?.floatingPanelSize, snapshot?.floatingPanelCompactSize]);
+
+  // Quando usuário clica no botão de modo compacto, redimensionar pro tamanho certo imediatamente
+  useEffect(() => {
+    if (!isCompactMode) return;
+
+    const isSessionRunning = snapshot?.activeSession?.status === 'Ativo';
+    const hasCustomSize = snapshot?.floatingPanelCompactSize;
+    if (!hasCustomSize) {
+      const width = isSessionRunning ? 285 : 218;
+      const height = isSessionRunning ? 57 : 54;
+      window.allus.invoke('window:setFloatingHeight', { width, height });
+    }
+  }, [isCompactMode, snapshot?.activeSession?.status, snapshot?.floatingPanelCompactSize]);
 
   if (!snapshot) return <div className="allus-app-bg" style={{ height: '100%' }} />;
 

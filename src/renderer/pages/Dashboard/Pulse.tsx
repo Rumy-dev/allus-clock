@@ -72,7 +72,7 @@ export function Pulse() {
     return (
       <div className="allus-app-bg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Titlebar title="ALLUS PULSE" />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5fae', fontSize: 14 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--allus-status-interrompido)', fontSize: 14 }}>
           {error}
         </div>
       </div>
@@ -102,7 +102,7 @@ export function Pulse() {
   const longestBlockHours = formatDuration(pulse.insights.longestBlockSeconds);
   const yesterdayTrend = pulse.insights.todayVsYesterdayPct;
   const yesterdayIndicator = yesterdayTrend > 0 ? '↑' : yesterdayTrend < 0 ? '↓' : '→';
-  const yesterdayColor = yesterdayTrend > 0 ? '#4bf5e3' : yesterdayTrend < 0 ? '#ff5fae' : '#999';
+  const yesterdayColor = yesterdayTrend > 0 ? 'var(--allus-status-concluido)' : yesterdayTrend < 0 ? 'var(--allus-status-interrompido)' : '#999';
   const noFocusMemberIds = pulse.insights.noFocusMemberIds;
 
   return (
@@ -150,7 +150,7 @@ export function Pulse() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           <div className="allus-glass" style={{ padding: 16 }}>
             <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 8 }}>FOCANDO AGORA</div>
-            <div style={{ fontSize: 32, fontWeight: 700, color: '#4bf5e3', fontFamily: 'var(--allus-font-mono)' }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>
               {pulse.teamFocusingCount}
             </div>
           </div>
@@ -160,11 +160,11 @@ export function Pulse() {
               <span style={{ fontSize: 14, color: yesterdayColor, fontWeight: 'bold' }}>{yesterdayIndicator}</span>
               <span style={{ fontSize: 9, color: yesterdayColor }}>{Math.abs(yesterdayTrend)}%</span>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#ff5fae', fontFamily: 'var(--allus-font-mono)' }}>{todayHours}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--allus-white)', fontFamily: 'var(--allus-font-mono)' }}>{todayHours}</div>
           </div>
           <div className="allus-glass" style={{ padding: 16 }}>
             <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 8 }}>META DIÁRIA</div>
-            <div style={{ fontSize: 32, fontWeight: 700, color: pulse.dailyGoalPct >= 100 ? '#4bf5e3' : '#9b6bff', fontFamily: 'var(--allus-font-mono)' }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: pulse.dailyGoalPct >= 100 ? 'var(--allus-status-concluido)' : 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>
               {pulse.dailyGoalPct}%
             </div>
           </div>
@@ -220,7 +220,7 @@ export function Pulse() {
                           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {proj.projectName}
                           </span>
-                          {proj.pct > 100 && <span style={{ color: '#ff5fae', fontSize: 12, fontWeight: 'bold' }}>⚠</span>}
+                          {proj.pct > 100 && <span style={{ color: 'var(--allus-status-interrompido)', fontSize: 12, fontWeight: 'bold' }}>⚠</span>}
                         </div>
                         <div
                           style={{
@@ -235,7 +235,7 @@ export function Pulse() {
                             style={{
                               width: `${Math.min(proj.pct, 100)}%`,
                               height: '100%',
-                              background: proj.pct <= 100 ? '#4bf5e3' : '#ff5fae',
+                              background: proj.pct <= 100 ? 'var(--allus-yellow)' : 'var(--allus-status-interrompido)',
                               transition: 'width 0.3s ease',
                             }}
                           />
@@ -256,12 +256,12 @@ export function Pulse() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 11 }}>
                 <div style={{ paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                   <div style={{ color: 'var(--allus-text-muted)', marginBottom: 4 }}>↑ Top cliente</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#9b6bff' }}>{pulse.insights.topClientPct}%</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--allus-yellow)' }}>{pulse.insights.topClientPct}%</div>
                 </div>
                 {pulse.insights.unclassifiedSeconds > 0 && (
                   <div style={{ paddingBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                     <div style={{ color: 'var(--allus-text-muted)', marginBottom: 4 }}>⚠ Sem classificação</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#ff5fae' }}>{unclassifiedHours}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--allus-status-pausado)' }}>{unclassifiedHours}</div>
                   </div>
                 )}
                 {noFocusMemberIds.length > 0 && (
@@ -281,7 +281,7 @@ export function Pulse() {
                 )}
                 <div>
                   <div style={{ color: 'var(--allus-text-muted)', marginBottom: 4 }}>★ Maior foco</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#4bf5e3' }}>{longestBlockHours}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--allus-yellow)' }}>{longestBlockHours}</div>
                 </div>
               </div>
             </div>
@@ -333,7 +333,7 @@ function TeamMemberRow({ member }: TeamMemberRowProps) {
   }, [member.status]);
 
   const statusDot = member.status === 'Ativo' ? '●' : member.status === 'Pausado' ? '◐' : '○';
-  const statusColor = member.status === 'Ativo' ? '#4bf5e3' : member.status === 'Pausado' ? '#9b6bff' : '#555';
+  const statusColor = member.status === 'Ativo' ? 'var(--allus-status-ativo)' : member.status === 'Pausado' ? 'var(--allus-status-pausado)' : '#555';
 
   let displayTime: string;
   if (member.status !== 'offline') {
@@ -351,8 +351,8 @@ function TeamMemberRow({ member }: TeamMemberRowProps) {
       style={{
         padding: 10,
         borderRadius: 8,
-        background: highlighted ? 'rgba(75, 245, 227, 0.15)' : 'rgba(255,255,255,0.04)',
-        border: highlighted ? '1px solid rgba(75, 245, 227, 0.3)' : '1px solid rgba(255,255,255,0.08)',
+        background: highlighted ? 'rgba(236, 220, 1, 0.15)' : 'rgba(255,255,255,0.04)',
+        border: highlighted ? '1px solid rgba(236, 220, 1, 0.3)' : '1px solid rgba(255,255,255,0.08)',
         transition: highlighted ? 'all 0.15s ease' : 'all 0.3s ease',
         display: 'flex',
         alignItems: 'center',

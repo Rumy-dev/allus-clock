@@ -222,9 +222,9 @@ export function FloatingPanel() {
 
   const skipLabel = session?.cycleKind === 'Pausa' ? '⏭ foco' : '⏭ pausa';
   const isFocus = session?.cycleKind === 'Foco';
-  const cycleColor = isFocus ? '#ff5fae' : '#4bf5e3';
+  const cycleColor = isFocus ? '#ecdc01' : '#fafafa';
   const cycleEmoji = isFocus ? '🔴' : '🟢';
-  const alertColor = isAlertTime ? '#ff5fae' : 'var(--allus-text-primary)';
+  const alertColor = isAlertTime ? '#ffd166' : 'var(--allus-text-primary)';
 
   const isSizeLocked = snapshot?.floatingPanelSizeLocked ?? false;
   const handleSizeLockToggle = () => {
@@ -260,7 +260,7 @@ export function FloatingPanel() {
         padding: 'var(--allus-space-4) var(--allus-space-3)',
         borderLeft: `3px solid ${session ? cycleColor : `rgba(255,255,255,${borderOpacity * 0.3})`}`,
         overflowY: 'auto',
-        background: `rgba(13, 11, 22, ${bgOpacity})`,
+        background: `rgba(0, 0, 1, ${bgOpacity})`,
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         display: 'flex',
@@ -358,9 +358,9 @@ export function FloatingPanel() {
             style={{
               padding: '6px 8px',
               borderRadius: 6,
-              border: activeLog.isDone ? `1.5px solid #4bf5e3` : '1px solid rgba(255,255,255,0.2)',
-              background: activeLog.isDone ? 'rgba(79, 245, 227, 0.15)' : 'transparent',
-              color: activeLog.isDone ? '#4bf5e3' : 'var(--allus-text-muted)',
+              border: activeLog.isDone ? `1.5px solid #ecdc01` : '1px solid rgba(255,255,255,0.2)',
+              background: activeLog.isDone ? 'rgba(236, 220, 1, 0.15)' : 'transparent',
+              color: activeLog.isDone ? '#ecdc01' : 'var(--allus-text-muted)',
               fontSize: 13,
               cursor: 'pointer',
               fontWeight: 600,
@@ -388,9 +388,9 @@ export function FloatingPanel() {
                     minWidth: 100,
                     padding: '10px 12px',
                     borderRadius: 8,
-                    border: '1.5px solid rgba(79, 245, 227, 0.5)',
-                    background: 'rgba(79, 245, 227, 0.12)',
-                    color: '#4bf5e3',
+                    border: '1.5px solid rgba(236, 220, 1, 0.5)',
+                    background: 'rgba(236, 220, 1, 0.12)',
+                    color: '#ecdc01',
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -429,9 +429,9 @@ export function FloatingPanel() {
                   flex: 1,
                   padding: '11px 16px',
                   borderRadius: 8,
-                  border: '1.5px solid rgba(79, 245, 227, 0.4)',
-                  background: 'rgba(79, 245, 227, 0.1)',
-                  color: '#4bf5e3',
+                  border: '1.5px solid rgba(236, 220, 1, 0.4)',
+                  background: 'rgba(236, 220, 1, 0.1)',
+                  color: '#ecdc01',
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -453,12 +453,12 @@ export function FloatingPanel() {
               flex: 1,
               padding: '10px 14px',
               borderRadius: 8,
-              border: session.status === 'Ativo' ? '1.5px solid #ffb84d' : '1.5px solid #4bf5e3',
+              border: session.status === 'Ativo' ? '1.5px solid #ffb84d' : '1.5px solid #ecdc01',
               background:
                 session.status === 'Ativo'
                   ? 'rgba(255, 184, 77, 0.12)'
-                  : 'rgba(79, 245, 227, 0.12)',
-              color: session.status === 'Ativo' ? '#ffb84d' : '#4bf5e3',
+                  : 'rgba(236, 220, 1, 0.12)',
+              color: session.status === 'Ativo' ? '#ffb84d' : '#ecdc01',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
@@ -516,7 +516,7 @@ export function FloatingPanel() {
             cursor: 'pointer',
             fontSize: 13,
             background: cycleColor,
-            color: '#0d0b16',
+            color: '#000001',
             transition: 'all 0.2s ease',
             boxShadow: `0 4px 12px ${cycleColor}40`,
           }}
@@ -621,10 +621,10 @@ export function FloatingPanel() {
               style={{
                 padding: '10px 12px',
                 borderRadius: 8,
-                background: 'rgba(79, 245, 227, 0.1)',
-                border: '1px solid rgba(79, 245, 227, 0.25)',
+                background: 'rgba(236, 220, 1, 0.1)',
+                border: '1px solid rgba(236, 220, 1, 0.25)',
                 fontSize: 12,
-                color: '#4bf5e3',
+                color: '#ecdc01',
                 textAlign: 'center',
                 fontWeight: 500,
               }}
@@ -654,7 +654,7 @@ export function FloatingPanel() {
             }}
             title="Abrir Central de Tempos"
           >
-            Minhas horas (7 dias): <span style={{ color: '#4bf5e3', fontWeight: 600 }}>{myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}</span>
+            Minhas horas (7 dias): <span style={{ color: '#ecdc01', fontWeight: 600 }}>{myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}</span>
           </button>
 
           {/* Tarefas recentes */}
@@ -747,7 +747,7 @@ export function FloatingPanel() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: 'rgba(13, 11, 22, 0.95)',
+              background: 'rgba(0, 0, 1, 0.95)',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: 12,
               padding: '16px',

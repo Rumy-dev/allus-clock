@@ -16,9 +16,9 @@ export function ProgressRing({ progress, size = 220, label, sublabel }: Progress
       <svg width={size} height={size}>
         <defs>
           <linearGradient id="allus-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--allus-pink)" />
-            <stop offset="55%" stopColor="var(--allus-purple)" />
-            <stop offset="100%" stopColor="var(--allus-cyan)" />
+            <stop offset="0%" stopColor="var(--allus-yellow-deep)" />
+            <stop offset="55%" stopColor="var(--allus-yellow)" />
+            <stop offset="100%" stopColor="var(--allus-yellow-soft)" />
           </linearGradient>
         </defs>
         <circle

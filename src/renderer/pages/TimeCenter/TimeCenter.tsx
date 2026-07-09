@@ -70,7 +70,7 @@ export function TimeCenter() {
       <Titlebar title="CENTRAL DE TEMPOS · Tempo acumulado por pessoa/tarefa" />
       <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--allus-cyan)', fontFamily: 'var(--allus-font-mono)' }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>
             {formatDuration(total)}
           </div>
           <div style={{ flex: 1 }} />
@@ -106,7 +106,7 @@ export function TimeCenter() {
             <div key={person.userId}>
               <ReportRow
                 label={person.fullName}
-                color="var(--allus-pink)"
+                color="var(--allus-yellow-deep)"
                 seconds={person.totalSeconds}
                 expandable
                 expanded={expanded.has(`p:${person.userId}`)}
@@ -117,7 +117,7 @@ export function TimeCenter() {
                   <div key={client.id} style={{ marginLeft: 16 }}>
                     <ReportRow
                       label={client.clientName}
-                      color="var(--allus-purple)"
+                      color="var(--allus-white)"
                       seconds={client.totalSeconds}
                       expandable
                       expanded={expanded.has(`c:${client.id}`)}
@@ -128,7 +128,7 @@ export function TimeCenter() {
                         <div key={project.id} style={{ marginLeft: 16 }}>
                           <ReportRow
                             label={project.projectName}
-                            color="var(--allus-cyan)"
+                            color="var(--allus-yellow)"
                             seconds={project.totalSeconds}
                             expandable
                             expanded={expanded.has(`pr:${project.id}`)}

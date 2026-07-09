@@ -17,7 +17,7 @@ export function DateFilterBar({ value, onChange }: DateFilterBarProps) {
           style={{
             ...pillButtonStyle,
             backgroundImage: value === f ? 'var(--allus-gradient)' : undefined,
-            color: value === f ? '#0d0b16' : undefined,
+            color: value === f ? '#000001' : undefined,
           }}
         >
           {f}

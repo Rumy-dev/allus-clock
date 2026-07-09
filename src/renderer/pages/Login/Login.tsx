@@ -92,7 +92,7 @@ const buttonStyle: React.CSSProperties = {
   borderRadius: 10,
   border: 'none',
   backgroundImage: 'var(--allus-gradient)',
-  color: '#0d0b16',
+  color: '#000001',
   fontWeight: 700,
   fontSize: 14,
 };

@@ -1,21 +1,24 @@
 :root {
-  --allus-bg-1: #0d0b16;
-  --allus-bg-2: #150f24;
-  --allus-surface: #1a1625;
-  --allus-pink: #ff5fae;
-  --allus-cyan: #4bf5e3;
-  --allus-purple: #9b6bff;
-  --allus-gradient: linear-gradient(135deg, var(--allus-pink), var(--allus-purple) 55%, var(--allus-cyan));
+  --allus-bg-1: #000001;
+  --allus-bg-2: #0e0e0e;
+  --allus-surface: #1a1a1a;
+  --allus-black: #000001;
+  --allus-white: #fafafa;
+  --allus-gray: #565656;
+  --allus-yellow: #ecdc01;
+  --allus-yellow-soft: #f5ec6b;
+  --allus-yellow-deep: #b8ac00;
+  --allus-gradient: linear-gradient(135deg, var(--allus-yellow-deep), var(--allus-yellow) 55%, var(--allus-yellow-soft));
   --allus-glass-bg: rgba(255, 255, 255, 0.06);
   --allus-glass-border: rgba(255, 255, 255, 0.14);
   --allus-glass-blur: blur(22px);
-  --allus-text-primary: #f5f3ff;
-  --allus-text-secondary: rgba(245, 243, 255, 0.62);
-  --allus-text-muted: rgba(245, 243, 255, 0.4);
+  --allus-text-primary: #fafafa;
+  --allus-text-secondary: rgba(250, 250, 250, 0.62);
+  --allus-text-muted: rgba(250, 250, 250, 0.4);
   --allus-radius-lg: 20px;
   --allus-radius-md: 14px;
   --allus-radius-sm: 8px;
-  --allus-status-ativo: #4bf5e3;
+  --allus-status-ativo: #ecdc01;
   --allus-status-pausado: #ffd166;
   --allus-status-concluido: #7ef29b;
   --allus-status-interrompido: #ff6b6b;
@@ -39,9 +42,9 @@
 
 .allus-app-bg {
   background:
-    radial-gradient(circle at 15% 10%, rgba(255, 95, 174, 0.25), transparent 45%),
-    radial-gradient(circle at 85% 20%, rgba(75, 245, 227, 0.18), transparent 40%),
-    radial-gradient(circle at 50% 90%, rgba(155, 107, 255, 0.25), transparent 50%),
+    radial-gradient(circle at 15% 10%, rgba(236, 220, 1, 0.16), transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(184, 172, 0, 0.14), transparent 40%),
+    radial-gradient(circle at 50% 90%, rgba(245, 236, 107, 0.14), transparent 50%),
     var(--allus-bg-1);
   border-radius: var(--allus-radius-lg);
   overflow: hidden;

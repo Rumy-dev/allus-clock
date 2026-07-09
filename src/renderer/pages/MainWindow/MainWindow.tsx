@@ -181,7 +181,7 @@ export function MainWindow() {
                         style={{
                           ...pillButtonStyle,
                           backgroundImage: snapshot.selectedMode === mode ? 'var(--allus-gradient)' : undefined,
-                          color: snapshot.selectedMode === mode ? '#0d0b16' : undefined,
+                          color: snapshot.selectedMode === mode ? '#000001' : undefined,
                           fontSize: 11,
                         }}
                       >
@@ -195,7 +195,7 @@ export function MainWindow() {
               {/* Bloco: Minhas Horas */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-2)', borderTop: '1px solid var(--allus-glass-border)', paddingTop: 'var(--allus-space-4)' }}>
                 <div style={sectionHeadingStyle}>Minhas horas</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#4bf5e3', fontFamily: 'var(--allus-font-mono)' }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>
                   {myHoursSeconds === null ? '...' : formatHoursSummary(myHoursSeconds)}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--allus-text-muted)' }}>Últimos 7 dias</div>
@@ -461,7 +461,7 @@ export function MainWindow() {
                 style={{
                   ...pillButtonStyle,
                   backgroundImage: snapshot.selectedMode === mode ? 'var(--allus-gradient)' : undefined,
-                  color: snapshot.selectedMode === mode ? '#0d0b16' : undefined,
+                  color: snapshot.selectedMode === mode ? '#000001' : undefined,
                   fontWeight: snapshot.selectedMode === mode ? 700 : 400,
                 }}
               >
@@ -714,7 +714,7 @@ const primaryButtonStyle: React.CSSProperties = {
   borderRadius: '50%',
   border: 'none',
   backgroundImage: 'var(--allus-gradient)',
-  color: '#0d0b16',
+  color: '#000001',
   fontSize: 16,
 };
 

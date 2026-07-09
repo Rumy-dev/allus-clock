@@ -197,7 +197,7 @@ export function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           <div className="allus-glass" style={{ padding: 16 }}>
             <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 8 }}>TOTAL DE HORAS</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: '#4bf5e3', fontFamily: 'var(--allus-font-mono)' }}>{totalHours}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--allus-yellow)', fontFamily: 'var(--allus-font-mono)' }}>{totalHours}</div>
           </div>
           <div className="allus-glass" style={{ padding: 16 }}>
             <div style={{ fontSize: 11, color: 'var(--allus-text-muted)', marginBottom: 8 }}>PESSOA COM MAIS HORAS</div>
@@ -242,7 +242,7 @@ export function Dashboard() {
         {/* Horas por Pessoa (principal) */}
         {!selectedUserId && (
           <div className="allus-glass" style={{ padding: 12 }}>
-            <BarChart title="Horas por pessoa" items={personData} color="#ff5fae" />
+            <BarChart title="Horas por pessoa" items={personData} color="#ecdc01" />
           </div>
         )}
 
@@ -262,7 +262,7 @@ export function Dashboard() {
                       setDrill({ level: 'projects', clientId: drill.clientId });
                     }
                   }}
-                  style={{ fontSize: 10, border: 'none', background: 'transparent', color: '#4bf5e3', cursor: 'pointer' }}
+                  style={{ fontSize: 10, border: 'none', background: 'transparent', color: 'var(--allus-yellow)', cursor: 'pointer' }}
                 >
                   ← Voltar
                 </button>
@@ -271,7 +271,7 @@ export function Dashboard() {
             <BarChart
               title=""
               items={drillItems}
-              color="#4bf5e3"
+              color="#fafafa"
               onItemClick={(item) => {
                 if (drill.level === 'clients') {
                   setDrill({ level: 'projects', clientId: item.id });
@@ -283,12 +283,12 @@ export function Dashboard() {
           </div>
 
           <div className="allus-glass" style={{ padding: 12 }}>
-            <BarChart title="Horas por tipo de projeto" items={typeData} color="#9b6bff" />
+            <BarChart title="Horas por tipo de projeto" items={typeData} color="#b8ac00" />
           </div>
         </div>
 
         <div className="allus-glass" style={{ padding: 12 }}>
-          <TrendChart title="Tendência diária" data={trend} color="#4bf5e3" />
+          <TrendChart title="Tendência diária" data={trend} color="#fafafa" />
         </div>
       </div>
       <ToastHost />

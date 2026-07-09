@@ -300,7 +300,7 @@ export function TaskCenter() {
                 onClick={() => toggle(expandedClients, setExpandedClients, client.id)}
               >
                 <span>{expandedClients.has(client.id) ? '▾' : '▸'}</span>
-                <strong style={{ color: 'var(--allus-purple)' }}>{client.name}</strong>
+                <strong style={{ color: 'var(--allus-yellow-deep)' }}>{client.name}</strong>
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--allus-text-muted)' }}>
                   {projects.length} projeto(s)
                 </span>
@@ -323,7 +323,7 @@ export function TaskCenter() {
                       onContextMenu={(e) => onProjectContextMenu(e, project)}
                     >
                       <span>{expandedProjects.has(project.id) ? '▾' : '▸'}</span>
-                      <span style={{ color: 'var(--allus-cyan)' }}>{project.name}</span>
+                      <span style={{ color: 'var(--allus-yellow)' }}>{project.name}</span>
                       {project.type && (
                         <span
                           style={{
@@ -538,7 +538,7 @@ function MoveToProjectModal({
         <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {clients.map((client) => (
             <div key={client.id}>
-              <div style={{ fontSize: 11, color: 'var(--allus-purple)', padding: '4px 8px' }}>{client.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--allus-yellow-deep)', padding: '4px 8px' }}>{client.name}</div>
               {projects
                 .filter((p) => p.clientId === client.id)
                 .map((project) => (

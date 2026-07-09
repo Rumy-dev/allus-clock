@@ -79,7 +79,7 @@ export function ProjectPicker({ clients, projects, selectedProjectId, onSelect, 
                         style={{
                           ...projectButtonStyle,
                           background: active ? 'var(--allus-gradient)' : 'rgba(255,255,255,0.04)',
-                          color: active ? '#0d0b16' : 'var(--allus-text-primary)',
+                          color: active ? '#000001' : 'var(--allus-text-primary)',
                           fontWeight: active ? 600 : 500,
                         }}
                         onMouseEnter={(e) => {
@@ -131,7 +131,7 @@ const clientHeadingStyle: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  color: 'var(--allus-purple)',
+  color: 'var(--allus-yellow-deep)',
   padding: '2px 4px',
 };
 

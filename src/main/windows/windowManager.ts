@@ -2,6 +2,7 @@ import { BrowserWindow, app } from 'electron';
 import path from 'node:path';
 import type { AppSnapshot } from '../../shared/ipc-contract';
 import { appStore } from '../store/appStore';
+import { authManager } from '../auth/authManager';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -12,6 +13,7 @@ export function setQuitting(value: boolean): void {
 }
 
 let floatingPanelCompactMode = false;
+let floatingResizeTimeout: NodeJS.Timeout | null = null;
 
 const windows: {
   login: BrowserWindow | null;
@@ -131,15 +133,26 @@ export function showFloatingPanel(): void {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   loadPage(win, 'floating');
 
-  // Salvar tamanho quando usuário redimensiona manualmente
+  // Salvar tamanho quando usuário redimensiona manualmente (com debounce)
   win.on('resized', () => {
-    const bounds = win.getBounds();
-    const size = { width: bounds.width, height: bounds.height };
-    if (floatingPanelCompactMode) {
-      appStore.patch({ floatingPanelCompactSize: size });
-    } else {
-      appStore.patch({ floatingPanelSize: size });
-    }
+    if (floatingResizeTimeout) clearTimeout(floatingResizeTimeout);
+
+    floatingResizeTimeout = setTimeout(() => {
+      const bounds = win.getBounds();
+      const size = { width: bounds.width, height: bounds.height };
+
+      if (floatingPanelCompactMode) {
+        appStore.patch({ floatingPanelCompactSize: size });
+        authManager.updatePreferences({ floatingPanelCompactSize: size }).catch(() => {
+          // Se falhar (offline), o estado local já foi atualizado
+        });
+      } else {
+        appStore.patch({ floatingPanelSize: size });
+        authManager.updatePreferences({ floatingPanelSize: size }).catch(() => {
+          // Se falhar (offline), o estado local já foi atualizado
+        });
+      }
+    }, 300); // Aguarda 300ms após o último resize antes de salvar
   });
 
   windows.floating = win;

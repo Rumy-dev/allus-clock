@@ -111,36 +111,9 @@ export function showFloatingPanel(): void {
     return;
   }
 
-  const snapshot = appStore.getSnapshot();
-  floatingPanelCompactMode = snapshot.floatingPanelIsCompactMode ?? false;
-  const hasActiveSession = snapshot.activeSession !== null;
-
+  // Usar tamanho padrão
   let width = 307;
   let height = 390;
-
-  // Tentar usar tamanho customizado
-  if (floatingPanelCompactMode) {
-    const savedSize = snapshot.floatingPanelCompactSize;
-    if (savedSize?.width && savedSize?.height) {
-      width = savedSize.width;
-      height = savedSize.height;
-    } else if (hasActiveSession) {
-      width = 285;
-      height = 57;
-    } else {
-      width = 218;
-      height = 54;
-    }
-  } else {
-    const savedSize = snapshot.floatingPanelSize;
-    if (savedSize?.width && savedSize?.height) {
-      width = savedSize.width;
-      height = savedSize.height;
-    } else if (hasActiveSession) {
-      width = 429;
-      height = 479;
-    }
-  }
 
   const win = new BrowserWindow({
     width,

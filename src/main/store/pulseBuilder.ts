@@ -26,6 +26,7 @@ function sevenDaysAgo(d: Date): string {
 }
 
 export async function queryPulse(): Promise<PulseResult> {
+  console.log('[pulseBuilder] iniciando queryPulse...');
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
@@ -33,6 +34,7 @@ export async function queryPulse(): Promise<PulseResult> {
   const yesterdayEnd = endOfDay(new Date(now.getTime() - 24 * 3600 * 1000));
   const monthStart = startOfMonth(now);
   const weekStart = sevenDaysAgo(now);
+  console.log('[pulseBuilder] datas calculadas:', { todayStart, todayEnd, yesterdayStart, yesterdayEnd });
 
   // 1. Sessões ativas/pausadas (live status)
   const { data: activeSessions, error: sessionsError } = await supabase
@@ -230,6 +232,8 @@ export async function queryPulse(): Promise<PulseResult> {
   const noFocusMemberIds = teamMembers
     .filter((m) => m.status === 'offline' && m.todayTotalSeconds === 0)
     .map((m) => m.userId);
+
+  console.log('[pulseBuilder] calculados:', { teamTodaySeconds, teamFocusingCount, todayVsYesterdayPct, noFocusMemberIds });
 
   return {
     generatedAt: now.toISOString(),

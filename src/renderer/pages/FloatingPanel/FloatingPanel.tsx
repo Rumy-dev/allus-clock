@@ -125,7 +125,8 @@ export function FloatingPanel() {
     }
   }, [modeSelectTask, isCompactMode]);
 
-  // Redimensionar automaticamente ao iniciar/parar uma tarefa (sem customização manual)
+  // Modo compacto só existe enquanto há tarefa rodando.
+  // Quando a sessão para, reverte automaticamente pro modo normal.
   useEffect(() => {
     const isSessionActive = snapshot?.activeSession !== null && snapshot?.activeSession !== undefined;
     const wasSessionActive = wasSessionActiveRef.current;
@@ -133,7 +134,20 @@ export function FloatingPanel() {
     if (isSessionActive !== wasSessionActive) {
       wasSessionActiveRef.current = isSessionActive;
 
-      // Só redimensiona se o usuário não tiver customizado manualmente
+      if (!isSessionActive && isCompactMode) {
+        // Sessão parou enquanto estava em modo compacto: reverter pra normal
+        setIsCompactMode(false);
+        window.allus.invoke('window:setFloatingCompactMode', { isCompact: false });
+        window.allus.invoke('prefs:setFloatingPanelIsCompactMode', { isCompact: false });
+
+        const hasCustomSize = snapshot?.floatingPanelSize;
+        if (!hasCustomSize) {
+          window.allus.invoke('window:setFloatingHeight', { width: 307, height: 390 });
+        }
+        return;
+      }
+
+      // Redimensionar automaticamente (só se não houver customização manual)
       const hasCustomSize = isCompactMode ? snapshot?.floatingPanelCompactSize : snapshot?.floatingPanelSize;
       if (!hasCustomSize) {
         let width: number;

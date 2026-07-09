@@ -13,6 +13,11 @@ const allusApi = {
     ipcRenderer.on('state:update', listener);
     return () => ipcRenderer.removeListener('state:update', listener);
   },
+  on(channel: string, callback: () => void): () => void {
+    const listener = () => callback();
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
+  },
 };
 
 export type AllusApi = typeof allusApi;

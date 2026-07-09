@@ -26,6 +26,24 @@ export function FloatingPanel() {
 
   const panelOpacity = (snapshot?.floatingPanelOpacity ?? 90) / 100;
 
+  // Listener de ESC enviado pelo main process (globalShortcut)
+  useEffect(() => {
+    const handleEscape = () => {
+      // Fechar modal primeiro, se estiver aberto
+      if (modeSelectTask) {
+        setModeSelectTask(null);
+      } else if (showProjectPicker) {
+        setShowProjectPicker(false);
+      } else if (showAdd) {
+        setShowAdd(false);
+      } else {
+        // Se nenhum modal aberto, fechar o painel
+        window.allus.invoke('window:closeSelf', undefined);
+      }
+    };
+    return window.allus.on('key:escape', handleEscape);
+  }, [modeSelectTask, showProjectPicker, showAdd]);
+
   useKeyboardShortcuts({
     onPlayPause: () => invokeAction('timer:playPause', undefined),
     onEscape: () => {

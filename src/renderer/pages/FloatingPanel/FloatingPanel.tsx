@@ -69,6 +69,7 @@ export function FloatingPanel() {
     };
 
     function applySize(width: number, height: number) {
+      // Apenas aplicar se o modal realmente precisa de um tamanho diferente
       const next = { width: Math.round(width), height: Math.round(height) };
       const last = lastSizeRef.current;
       if (last && last.width === next.width && last.height === next.height) return;
@@ -80,6 +81,8 @@ export function FloatingPanel() {
       (el): el is HTMLDivElement => el !== null,
     );
     if (observed.length === 0) {
+      // Sem modais: não força redimensionamento se o usuário já redimensionou manualmente
+      if (snapshot?.floatingPanelSize !== null) return;
       measure();
       return;
     }
@@ -87,7 +90,7 @@ export function FloatingPanel() {
     observed.forEach((el) => observer.observe(el));
     measure();
     return () => observer.disconnect();
-  }, [modeSelectTask, showProjectPicker]);
+  }, [modeSelectTask, showProjectPicker, snapshot?.floatingPanelSize]);
 
   useEffect(() => {
     if (!snapshot?.auth.profile) return;

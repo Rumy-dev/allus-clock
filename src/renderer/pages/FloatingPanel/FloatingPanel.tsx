@@ -189,7 +189,8 @@ export function FloatingPanel() {
         } as any}
       >
         {/* Linha 1: Timer + Ícones + Botões */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'flex-start' }}>
+        <div className="allus-no-drag" style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'flex-start' }}>
+          <div className="allus-drag" style={{ width: '4px', height: '24px', cursor: 'grab', flexShrink: 0 }} title="Arrastar painel" />
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--allus-font-mono)', color: session ? alertColor : 'var(--allus-text-muted)' }}>
               {session ? formatDuration(remaining) : '–'}
@@ -463,8 +464,9 @@ export function FloatingPanel() {
           borderBottom: `1px solid rgba(255,255,255,${borderOpacity * 0.3})`,
         }}
       >
-        {/* Status Badge + Ciclo em uma linha */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 600 }}>
+        {/* Alça de arraste + Status Badge + Ciclo em uma linha */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, gap: 'var(--allus-space-2)' }}>
+          <div className="allus-drag" style={{ width: '4px', height: '16px', cursor: 'grab', flexShrink: 0, borderRadius: 2, background: `rgba(255,255,255,${borderOpacity * 0.2})` }} title="Arrastar painel" />
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--allus-text-secondary)' }}>
             <span className="allus-status-dot" data-status={statusDotStatus} style={{ width: 8, height: 8, borderRadius: '50%', display: 'inline-block' }} />
             {statusLabel}

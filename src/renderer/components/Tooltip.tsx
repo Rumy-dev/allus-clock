@@ -18,8 +18,18 @@ export function Tooltip({ text, children }: TooltipProps) {
       </div>
       {show && (
         <div
+          ref={(el) => {
+            if (el) {
+              const rect = el.getBoundingClientRect?.();
+              if (rect && rect.top < 0) {
+                // Se sair da borda superior, mostrar embaixo
+                el.style.bottom = 'auto';
+                el.style.top = 'calc(100% + 4px)';
+              }
+            }
+          }}
           style={{
-            position: 'absolute',
+            position: 'fixed',
             bottom: '110%',
             left: '50%',
             transform: 'translateX(-50%)',

@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, globalShortcut, BrowserWindow } from 'electron';
 import started from 'electron-squirrel-startup';
 import { authManager } from './auth/authManager';
 import { appStore } from './store/appStore';
@@ -81,6 +81,14 @@ app.whenReady().then(async () => {
   if (initialState.status !== 'signedIn') {
     windowManager.showLogin();
   }
+
+  // Registrar atalhos globais de teclado
+  globalShortcut.register('Escape', () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    if (focusedWindow && focusedWindow.isVisible()) {
+      focusedWindow.close();
+    }
+  });
 });
 
 app.on('activate', () => {

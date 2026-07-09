@@ -146,6 +146,38 @@ export function unhideFloatingPanel(): void {
   windows.floating?.show();
 }
 
+export function toggleTaskCenter(): void {
+  if (windows.taskCenter && !windows.taskCenter.isDestroyed() && windows.taskCenter.isVisible()) {
+    windows.taskCenter.close();
+  } else {
+    showTaskCenter();
+  }
+}
+
+export function toggleTimeCenter(): void {
+  if (windows.timeCenter && !windows.timeCenter.isDestroyed() && windows.timeCenter.isVisible()) {
+    windows.timeCenter.close();
+  } else {
+    showTimeCenter();
+  }
+}
+
+export function toggleDashboard(): void {
+  if (windows.dashboard && !windows.dashboard.isDestroyed() && windows.dashboard.isVisible()) {
+    windows.dashboard.close();
+  } else {
+    showDashboard();
+  }
+}
+
+export function togglePulse(): void {
+  if (windows.pulse && !windows.pulse.isDestroyed() && windows.pulse.isVisible()) {
+    windows.pulse.close();
+  } else {
+    showPulse();
+  }
+}
+
 export function showTaskCenter(): void {
   if (windows.taskCenter && !windows.taskCenter.isDestroyed()) {
     windows.taskCenter.show();

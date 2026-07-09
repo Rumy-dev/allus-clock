@@ -503,28 +503,31 @@ export function MainWindow() {
               type="button"
               style={pillButtonStyle}
               onClick={() => window.allus.invoke('window:openFloating', undefined)}
-              title="Painel flutuante"
+              title="Painel flutuante (esc para fechar)"
             >
               🪟
             </button>
             <button
               type="button"
               style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:openTaskCenter', undefined)}
+              onClick={() => window.allus.invoke('window:toggleTaskCenter', undefined)}
+              title="Tarefas (clique novamente para fechar)"
             >
               📁
             </button>
             <button
               type="button"
               style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:openTimeCenter', undefined)}
+              onClick={() => window.allus.invoke('window:toggleTimeCenter', undefined)}
+              title="Minhas horas (clique novamente para fechar)"
             >
               📊
             </button>
             <button
               type="button"
               style={pillButtonStyle}
-              onClick={() => window.allus.invoke('window:openDashboard', undefined)}
+              onClick={() => window.allus.invoke('window:toggleDashboard', undefined)}
+              title="Dashboard (clique novamente para fechar)"
             >
               📈
             </button>
@@ -532,8 +535,8 @@ export function MainWindow() {
               <button
                 type="button"
                 style={pillButtonStyle}
-                title="Allus Pulse"
-                onClick={() => window.allus.invoke('window:openPulse', undefined)}
+                title="Allus Pulse (clique novamente para fechar)"
+                onClick={() => window.allus.invoke('window:togglePulse', undefined)}
               >
                 💠
               </button>

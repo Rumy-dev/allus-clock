@@ -125,6 +125,11 @@ export function registerIpcHandlers(): void {
   handle('window:openMain', async () => windowManager.showMainWindow());
   handle('window:openFloating', async () => windowManager.showFloatingPanel());
 
+  handle('window:toggleTaskCenter', async () => windowManager.toggleTaskCenter());
+  handle('window:toggleTimeCenter', async () => windowManager.toggleTimeCenter());
+  handle('window:toggleDashboard', async () => windowManager.toggleDashboard());
+  handle('window:togglePulse', async () => windowManager.togglePulse());
+
   ipcMain.handle('window:minimizeSelf', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize();
   });

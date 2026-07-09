@@ -100,6 +100,10 @@ export interface IpcInvokeMap {
   'window:openPulse': () => void;
   'window:openMain': () => void;
   'window:openFloating': () => void;
+  'window:toggleTaskCenter': () => void;
+  'window:toggleTimeCenter': () => void;
+  'window:toggleDashboard': () => void;
+  'window:togglePulse': () => void;
   'window:minimizeSelf': () => void;
   'window:closeSelf': () => void;
   'window:setFloatingHeight': (args: { width?: number; height?: number }) => void;

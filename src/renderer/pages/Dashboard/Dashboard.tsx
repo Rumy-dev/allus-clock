@@ -8,7 +8,7 @@ import { DateFilterBar } from '../../components/DateFilterBar';
 import { BarChart } from '../../components/BarChart';
 import { TrendChart } from '../../components/TrendChart';
 import { ToastHost } from '../../components/ToastHost';
-import type { DateRangeFilter, SessionDateFilter, TimeReportPerson, Client, Project } from '../../../shared/types';
+import type { DateRangeFilter, SessionDateFilter, TimeReportPerson } from '../../../shared/types';
 
 type DrillLevel = 'clients' | 'projects' | 'tasks';
 
@@ -30,7 +30,7 @@ export function Dashboard() {
   const loadReport = async () => {
     try {
       const result = await invokeAction('report:query', { range });
-      setReport(result as any);
+      if (result) setReport(result);
     } catch (err) {
       console.error('Erro ao carregar relatório', err);
     }
@@ -42,8 +42,9 @@ export function Dashboard() {
         range,
         clientId: drill.clientId,
         projectId: drill.projectId,
+        userId: selectedUserId ?? undefined,
       });
-      setTrend(trendData as any);
+      if (trendData) setTrend(trendData);
     } catch (err) {
       console.error('Erro ao carregar tendência', err);
     }
@@ -53,7 +54,7 @@ export function Dashboard() {
   useEffect(() => {
     loadReport();
     loadTrend();
-  }, [sessionFilter, drill]);
+  }, [sessionFilter, drill, selectedUserId]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -144,6 +145,7 @@ export function Dashboard() {
 
   // Dados transversais (por tipo e por pessoa)
   const typeData = useMemo(() => {
+    if (!snapshot) return [];
     if (!filteredPeople) return [];
     const typeMap = new Map<string, number>();
     for (const person of filteredPeople) {

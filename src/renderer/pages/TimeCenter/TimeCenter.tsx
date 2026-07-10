@@ -5,12 +5,10 @@ import { Titlebar } from '../../components/Titlebar';
 import { DateFilterBar } from '../../components/DateFilterBar';
 import { ToastHost } from '../../components/ToastHost';
 import { invokeAction } from '../../invoke';
-import { useAppState } from '../../useAppState';
 import { formatDuration } from '../../../shared/types';
 import type { DateRangeFilter, SessionDateFilter, TimeReportPerson } from '../../../shared/types';
 
 export function TimeCenter() {
-  const snapshot = useAppState();
   const [filter, setFilter] = useState<SessionDateFilter>('Hoje');
   const [people, setPeople] = useState<TimeReportPerson[]>([]);
   const [total, setTotal] = useState(0);
@@ -22,12 +20,23 @@ export function TimeCenter() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    window.allus.invoke('report:query', { range }).then((result) => {
-      if (cancelled) return;
-      setPeople(result.people);
-      setTotal(result.totalSeconds);
-      setLoading(false);
-    });
+    window.allus
+      .invoke('report:query', { range })
+      .then((result) => {
+        if (cancelled) return;
+        setPeople(result.people);
+        setTotal(result.totalSeconds);
+      })
+      .catch((err) => {
+        console.error('[TimeCenter] erro ao carregar relatório', err);
+        if (!cancelled) {
+          setPeople([]);
+          setTotal(0);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };

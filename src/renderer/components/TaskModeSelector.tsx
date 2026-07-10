@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { POMO_MODES } from '../../shared/types';
 import type { PomoMode, PomoTaskLog } from '../../shared/types';
 import { invokeAction } from '../invoke';
+import { Z } from '../styles/zIndex';
 
 interface TaskModeSelectorProps {
   task: { taskId: string | null; title: string };
@@ -22,7 +23,7 @@ export function TaskModeSelector({ task, recentTasks, onSelectTask, onClose, car
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: Z.popover,
         backdropFilter: 'blur(2px)',
       }}
       onClick={onClose}

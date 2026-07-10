@@ -8,6 +8,7 @@ import { ContextMenu } from '../../components/ContextMenu';
 import type { ContextMenuItem } from '../../components/ContextMenu';
 import { invokeAction, confirmDialog } from '../../invoke';
 import type { Client, Project, Task, TeamMember } from '../../../shared/types';
+import { Z } from '../../styles/zIndex';
 
 interface Clipboard {
   taskId: string;
@@ -674,7 +675,7 @@ const overlayStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 300,
+  zIndex: Z.panel,
 };
 
 const modalStyle: React.CSSProperties = {

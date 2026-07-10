@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Z } from '../styles/zIndex';
 
 export interface ContextMenuItem {
   label: string;
@@ -61,7 +62,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         position: 'fixed',
         left: adjustedPos.x,
         top: adjustedPos.y,
-        zIndex: 200,
+        zIndex: Z.contextMenu,
         padding: 6,
         minWidth: 180,
         display: 'flex',

@@ -81,9 +81,6 @@ export function render(): void {
       label: 'Sair da conta',
       click: async () => {
         await authManager.signOut();
-        windowManager.closeAllAppWindows();
-        destroyTray();
-        windowManager.showLogin();
       },
     },
     {

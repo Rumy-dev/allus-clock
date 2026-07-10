@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Z } from '../styles/zIndex';
 
 interface TooltipProps {
   text: string;
@@ -29,7 +30,7 @@ export function Tooltip({ text, children }: TooltipProps) {
             borderRadius: 6,
             fontSize: 9,
             whiteSpace: 'nowrap',
-            zIndex: 1000,
+            zIndex: Z.tooltip,
             pointerEvents: 'none',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
           }}

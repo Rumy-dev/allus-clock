@@ -2,6 +2,7 @@ import type { Ref } from 'react';
 import { createPortal } from 'react-dom';
 import type { Client, Project } from '../../shared/types';
 import { invokeAction } from '../invoke';
+import { Z } from '../styles/zIndex';
 
 interface ProjectPickerProps {
   clients: Client[];
@@ -111,7 +112,7 @@ const overlayStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  zIndex: 999,
+  zIndex: Z.popover,
   backdropFilter: 'blur(2px)',
 };
 

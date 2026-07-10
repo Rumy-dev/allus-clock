@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppState } from '../../useAppState';
-import { formatDuration } from '../../../shared/types';
+import { displayPath, formatDuration } from '../../../shared/types';
 import { useKeyboardShortcuts } from '../../useKeyboardShortcuts';
 import { invokeAction } from '../../invoke';
 import { ToastHost } from '../../components/ToastHost';
 import { TaskModeSelector } from '../../components/TaskModeSelector';
 import { ProjectPicker } from '../../components/ProjectPicker';
 import { Tooltip } from '../../components/Tooltip';
-import { displayPath } from '../../../shared/types';
 
 export function FloatingPanel() {
   const snapshot = useAppState();
@@ -64,11 +63,6 @@ export function FloatingPanel() {
   // Auto-fit apenas quando há modal/overlay aberto. Caso contrário, respeita
   // o tamanho que o usuário pode ter definido manualmente.
   useEffect(() => {
-    const PADDING_X = 2 * 12; // var(--allus-space-3) nas duas bordas
-    const PADDING_Y = 2 * 16; // var(--allus-space-4) nas duas bordas
-    const BORDER_LEFT = 3;
-    const BUTTON_SPACE = 60;
-
     const measure = () => {
       // Quando há modal/overlay, força o tamanho para o modal
       if (modeSelectTask) {
@@ -144,7 +138,6 @@ export function FloatingPanel() {
     // colapsado/sem-modal — não deve disparar o efeito de novo sozinho, senão
     // qualquer resize (inclusive o auto-fit programático abaixo) re-executa
     // esse efeito e cria um vaivém de resizes que aparenta tremor.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modeSelectTask, showProjectPicker, isExpanded]);
 
   useEffect(() => {
@@ -253,7 +246,6 @@ export function FloatingPanel() {
   // Opacidades padronizadas em função da preferência do usuário
   const bgOpacity = panelOpacity * 0.85;
   const borderOpacity = panelOpacity * 0.5;
-  const textMutedOpacity = panelOpacity * 0.6;
 
   // Layout compacto
 

@@ -94,7 +94,6 @@ export interface IpcInvokeMap {
   'prefs:setSound': (args: { enabled: boolean }) => void;
   'prefs:setFloatingMinimizable': (args: { enabled: boolean }) => void;
   'prefs:setFloatingPanelOpacity': (args: { opacity: number }) => void;
-  'prefs:setWindowGlassOpacity': (args: { opacity: number }) => void;
   'app:restartForUpdate': () => void;
   'prefs:setFloatingPanelSize': (args: { size: { width: number; height: number } | null }) => void;
   'prefs:setFloatingPanelSizeLocked': (args: { locked: boolean }) => void;

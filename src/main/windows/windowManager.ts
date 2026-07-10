@@ -5,6 +5,23 @@ import { appStore } from '../store/appStore';
 import { authManager } from '../auth/authManager';
 import * as timerEngine from '../store/timerEngine';
 
+// '#000001' = fallback opaco pro frame transparente que o Windows/Chromium
+// pode compositar antes do primeiro paint do React chegar — sem isso, em
+// builds empacotados (processo "frio") esse frame mostra o desktop/wallpaper
+// por trás da janela em vez do fundo sólido do app (ver showMainWindow).
+// Testamos transparência real (alpha zero) nessas janelas pra ter cantos
+// arredondados de verdade — no build empacotado o fundo inteiro (não só os
+// cantos) passou a vazar o papel de parede do Windows, deixando o app
+// ilegível. Voltamos pro fallback opaco: aceita o quadrado atrás do canto
+// arredondado como limitação cosmética conhecida, em troca de um app que
+// renderiza certo. Use nas janelas SEM transparência variável de verdade.
+const OPAQUE_FALLBACK_BG = '#000001';
+// '#00000000' = alpha real — só pra janelas com transparência de verdade
+// (Splash, painel flutuante com slider de opacidade). Um fallback opaco
+// aqui faria o Chromium misturar o rgba(...) do CSS contra preto opaco em
+// vez do desktop de verdade por trás.
+const TRANSPARENT_BG = '#00000000';
+
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
@@ -178,13 +195,25 @@ export function showLogin(): void {
     height: 460,
     resizable: false,
     frame: false,
-    transparent: true,
-    // Fallback opaco pro frame transparente que o Windows/Chromium pode
-    // compositar antes do primeiro paint do React chegar — sem isso, em
-    // builds empacotados (processo "frio") esse frame mostra o desktop por
-    // trás da janela em vez do fundo sólido do app (ver showMainWindow).
-    backgroundColor: '#000001',
+    // De propósito SEM transparent:true aqui (diferente de Splash/Floating):
+    // transparent:true põe a janela no caminho especial de "layered window"
+    // do Windows/Chromium, que tem um bug conhecido de não empurrar o frame
+    // pintado pra tela de forma confiável — a janela ficava presa mostrando
+    // só o backgroundColor (preto sólido) ou o papel de parede, mesmo com o
+    // React já totalmente montado por baixo (confirmado forçando um repaint
+    // via HMR, que revelou o conteúdo certo instantaneamente). Como essas 6
+    // janelas não usam transparência real de qualquer forma (cantos ficam
+    // quadrados, ok), tirar transparent:true evita esse bug de vez, usando
+    // o caminho normal de composição do Chromium.
+    transparent: false,
+    backgroundColor: OPAQUE_FALLBACK_BG,
     icon: iconPath(),
+    hasShadow: false,
+    // De propósito SEM backgroundMaterial/vibrancy nativo aqui: esses
+    // materiais do SO pintam o retângulo INTEIRO da janela, competindo com
+    // o backgroundColor opaco (mesmo motivo do painel flutuante, ver
+    // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
+    // backdrop-filter).
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'login');
@@ -219,7 +248,7 @@ export function showSplash(onShown?: () => void): void {
     y,
     frame: false,
     transparent: true,
-    backgroundColor: '#00000000',
+    backgroundColor: TRANSPARENT_BG,
     resizable: false,
     movable: false,
     minimizable: false,
@@ -273,15 +302,17 @@ export function showMainWindow(): void {
     minWidth: 680,
     minHeight: 560,
     frame: false,
-    transparent: true,
-    // Fallback opaco pro frame transparente que o Windows/Chromium pode
-    // compositar antes do primeiro paint do React chegar — sem isso, em
-    // builds empacotados (processo "frio", Squirrel) esse frame mostra o
-    // desktop/wallpaper por trás da janela em vez do fundo sólido do app.
-    // Em dev o processo já está "aquecido" e isso normalmente não aparece,
-    // por isso o bug só se manifestava no instalado.
-    backgroundColor: '#000001',
+    // Sem transparent:true — ver comentário completo em showLogin sobre o
+    // bug de "layered window" que isso causava.
+    transparent: false,
+    backgroundColor: OPAQUE_FALLBACK_BG,
     icon: iconPath(),
+    hasShadow: false,
+    // De propósito SEM backgroundMaterial/vibrancy nativo aqui: esses
+    // materiais do SO pintam o retângulo INTEIRO da janela, competindo com
+    // o backgroundColor opaco (mesmo motivo do painel flutuante, ver
+    // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
+    // backdrop-filter).
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'main');
@@ -329,21 +360,25 @@ export function showFloatingPanel(): void {
     y: undefined,
     frame: false,
     transparent: true,
-    // ATENÇÃO: diferente das outras janelas (que usam '#000001' opaco pra
-    // evitar o vazamento de wallpaper) — o painel flutuante é a ÚNICA
-    // janela com transparência REAL variável (floatingPanelOpacity pode
-    // chegar a 0%). Um backgroundColor opaco aqui faz o Chromium misturar
-    // o rgba(...) do CSS contra esse preto opaco em vez do desktop de
-    // verdade por trás, deixando o slider "não fazer nada" perto de 0%.
-    // '#00000000' (alpha zero, mesmo valor da Splash) é o fallback certo
-    // pra quem precisa de transparência real.
-    backgroundColor: '#00000000',
+    // ATENÇÃO: o painel flutuante é a ÚNICA janela do app com transparência
+    // REAL (as outras usam OPAQUE_FALLBACK_BG — ver comentário na constante
+    // acima sobre o vazamento de wallpaper que isso causava no build
+    // empacotado). O painel escapa desse bug e mantém alpha zero de
+    // verdade porque floatingPanelOpacity pode chegar a 0% (slider) e um
+    // fallback opaco faria o Chromium misturar o rgba(...) do CSS contra
+    // preto opaco em vez do desktop de verdade. De propósito SEM
+    // backgroundMaterial/vibrancy nativo aqui: reintroduziria o bug do
+    // slider não chegar a 0% (já corrigido nos commits c826d89/7c49803).
+    // Este painel usa só o backdrop-filter do CSS (.allus-glass), que
+    // respeita o alpha da janela de verdade.
+    backgroundColor: TRANSPARENT_BG,
     icon: iconPath(),
     resizable: !sizeLocked,
     minWidth: 100,
     minHeight: 110,
     alwaysOnTop: true,
     skipTaskbar: true,
+    hasShadow: false,
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
@@ -362,7 +397,9 @@ export function showFloatingPanel(): void {
       const bounds = win.getBounds();
       const size = { width: bounds.width, height: bounds.height };
       appStore.patch({ floatingPanelSize: size });
-      authManager.updatePreferences({ floatingPanelSize: size }).catch(() => {});
+      authManager.updatePreferences({ floatingPanelSize: size }).catch((err) => {
+        console.error('[floating] falha ao salvar tamanho do painel', err);
+      });
     }, 300);
   });
 
@@ -432,9 +469,17 @@ export function showTaskCenter(): void {
     minWidth: 640,
     minHeight: 480,
     frame: false,
-    transparent: true,
-    backgroundColor: '#000001',
+    // Sem transparent:true — ver comentário completo em showLogin sobre o
+    // bug de "layered window" que isso causava.
+    transparent: false,
+    backgroundColor: OPAQUE_FALLBACK_BG,
     icon: iconPath(),
+    hasShadow: false,
+    // De propósito SEM backgroundMaterial/vibrancy nativo aqui: esses
+    // materiais do SO pintam o retângulo INTEIRO da janela, competindo com
+    // o backgroundColor opaco (mesmo motivo do painel flutuante, ver
+    // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
+    // backdrop-filter).
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'taskCenter');
@@ -457,9 +502,17 @@ export function showTimeCenter(): void {
     minWidth: 680,
     minHeight: 480,
     frame: false,
-    transparent: true,
-    backgroundColor: '#000001',
+    // Sem transparent:true — ver comentário completo em showLogin sobre o
+    // bug de "layered window" que isso causava.
+    transparent: false,
+    backgroundColor: OPAQUE_FALLBACK_BG,
     icon: iconPath(),
+    hasShadow: false,
+    // De propósito SEM backgroundMaterial/vibrancy nativo aqui: esses
+    // materiais do SO pintam o retângulo INTEIRO da janela, competindo com
+    // o backgroundColor opaco (mesmo motivo do painel flutuante, ver
+    // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
+    // backdrop-filter).
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'timeCenter');
@@ -482,9 +535,17 @@ export function showDashboard(): void {
     minWidth: 900,
     minHeight: 600,
     frame: false,
-    transparent: true,
-    backgroundColor: '#000001',
+    // Sem transparent:true — ver comentário completo em showLogin sobre o
+    // bug de "layered window" que isso causava.
+    transparent: false,
+    backgroundColor: OPAQUE_FALLBACK_BG,
     icon: iconPath(),
+    hasShadow: false,
+    // De propósito SEM backgroundMaterial/vibrancy nativo aqui: esses
+    // materiais do SO pintam o retângulo INTEIRO da janela, competindo com
+    // o backgroundColor opaco (mesmo motivo do painel flutuante, ver
+    // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
+    // backdrop-filter).
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'dashboard');
@@ -507,9 +568,17 @@ export function showPulse(): void {
     minWidth: 1000,
     minHeight: 600,
     frame: false,
-    transparent: true,
-    backgroundColor: '#000001',
+    // Sem transparent:true — ver comentário completo em showLogin sobre o
+    // bug de "layered window" que isso causava.
+    transparent: false,
+    backgroundColor: OPAQUE_FALLBACK_BG,
     icon: iconPath(),
+    hasShadow: false,
+    // De propósito SEM backgroundMaterial/vibrancy nativo aqui: esses
+    // materiais do SO pintam o retângulo INTEIRO da janela, competindo com
+    // o backgroundColor opaco (mesmo motivo do painel flutuante, ver
+    // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
+    // backdrop-filter).
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
   loadPage(win, 'pulse');

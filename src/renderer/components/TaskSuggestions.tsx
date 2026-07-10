@@ -1,6 +1,7 @@
 import type { Client, Project, Task } from '../../shared/types';
 import { displayPath } from '../../shared/types';
 import { invokeAction } from '../invoke';
+import { Z } from '../styles/zIndex';
 
 interface TaskSuggestionsProps {
   query: string;
@@ -48,7 +49,7 @@ export function TaskSuggestions({ query, tasks, projects, clients, onPick }: Tas
 
 const panelStyle: React.CSSProperties = {
   position: 'absolute',
-  zIndex: 50,
+  zIndex: Z.dropdown,
   marginTop: 6,
   padding: 8,
   width: 320,

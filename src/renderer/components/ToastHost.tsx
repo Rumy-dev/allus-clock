@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { subscribeToasts, type Toast } from '../toast';
+import { Z } from '../styles/zIndex';
 
 export function ToastHost() {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -19,7 +20,7 @@ export function ToastHost() {
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
-        zIndex: 1000,
+        zIndex: Z.toast,
         maxWidth: '90%',
       }}
     >

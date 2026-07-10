@@ -19,19 +19,11 @@ function startOfMonth(d: Date): string {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
 }
 
-function sevenDaysAgo(d: Date): string {
-  const sevenAgo = new Date(d);
-  sevenAgo.setDate(sevenAgo.getDate() - 6);
-  return startOfDay(sevenAgo);
-}
-
 export async function queryPulse(): Promise<PulseResult> {
   const now = new Date();
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
   const monthStart = startOfMonth(now);
-  const weekStart = sevenDaysAgo(now);
-
   // Paraleliza as queries independentes: ativas, perfis, today, month para orçamento
   const [
     { data: activeSessions, error: sessionsError },

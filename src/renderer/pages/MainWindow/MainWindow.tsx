@@ -13,6 +13,7 @@ import { Toggle } from '../../components/Toggle';
 import { useKeyboardShortcuts } from '../../useKeyboardShortcuts';
 import { invokeAction, confirmDialog } from '../../invoke';
 import { toast } from '../../toast';
+import { Z } from '../../styles/zIndex';
 import { POMO_MODES, displayPath, formatDuration } from '../../../shared/types';
 import type { PomoMode, PomoSession, SessionDateFilter } from '../../../shared/types';
 
@@ -210,8 +211,8 @@ export function MainWindow() {
           </button>
           {showAccount && (
             <div
-              className="allus-glass"
-              style={{ position: 'absolute', right: 0, marginTop: 6, padding: 0, width: 300, zIndex: 60, display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}
+              className="allus-glass allus-popover-glass"
+              style={{ position: 'absolute', right: 0, marginTop: 6, padding: 0, width: 300, zIndex: Z.accountMenu, display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}
             >
               <div style={{ overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 'var(--allus-space-5)' }}>
                 {/* Cabeçalho: avatar + nome + função */}
@@ -421,7 +422,11 @@ export function MainWindow() {
                   </span>
                   {appInfo?.isDev && (
                     <button
-                      onClick={() => window.allus.invoke('window:openDevTools', undefined).catch(() => {})}
+                      onClick={() =>
+                        window.allus.invoke('window:openDevTools', undefined).catch((err) => {
+                          console.error('[MainWindow] falha ao abrir DevTools', err);
+                        })
+                      }
                       style={{
                         padding: '4px 8px',
                         fontSize: 9,

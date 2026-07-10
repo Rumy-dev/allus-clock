@@ -136,9 +136,19 @@ app.whenReady().then(async () => {
       if (!wasSignedIn) {
         wasSignedIn = true;
         windowManager.closeLogin();
-        await taskStore.hydrateTaxonomy();
-        await timerEngine.loadMostUsedTasks();
-        await timerEngine.hydrateActiveSession();
+        // As três hidratações são independentes entre si. Rodar em paralelo
+        // evita somar round-trips de rede; allSettled evita travar a abertura
+        // do app quando uma consulta falha momentaneamente.
+        const hydrationResults = await Promise.allSettled([
+          taskStore.hydrateTaxonomy(),
+          timerEngine.loadMostUsedTasks(),
+          timerEngine.hydrateActiveSession(),
+        ]);
+        hydrationResults.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`[main] hidratação inicial ${index} falhou`, result.reason);
+          }
+        });
         taskStore.subscribeRealtime();
         closeSplashAndReveal(() => {
           windowManager.showMainWindow();
@@ -147,9 +157,25 @@ app.whenReady().then(async () => {
         tray.initTray();
       }
     } else {
+      const hadSignedInSession = wasSignedIn;
       wasSignedIn = false;
-      appStore.patch({ auth: { status: 'signedOut', profile: null } });
+      appStore.patch({
+        auth: { status: 'signedOut', profile: null },
+        activeSession: null,
+        activeTaskLogs: [],
+        recentSessions: [],
+        clients: [],
+        projects: [],
+        tasks: [],
+        recentTasks: [],
+        profiles: [],
+      });
       await taskStore.unsubscribeRealtime();
+      if (hadSignedInSession) {
+        windowManager.closeAllAppWindows();
+        tray.destroyTray();
+        windowManager.showLogin();
+      }
     }
   });
 

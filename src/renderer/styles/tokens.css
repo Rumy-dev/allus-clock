@@ -47,14 +47,40 @@
   transform: translateZ(0);
 }
 
+.allus-popover-glass {
+  background: rgba(26, 26, 26, 0.96);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: none;
+}
+
 .allus-app-bg {
+  position: relative;
+  isolation: isolate;
   background:
-    radial-gradient(circle at 15% 10%, rgba(236, 220, 1, 0.16), transparent 45%),
-    radial-gradient(circle at 85% 20%, rgba(184, 172, 0, 0.14), transparent 40%),
-    radial-gradient(circle at 50% 90%, rgba(245, 236, 107, 0.14), transparent 50%),
+    url('../assets/allus-app-bg-glow.svg') no-repeat center / cover,
     var(--allus-bg-1);
   border-radius: var(--allus-radius-lg);
   overflow: hidden;
+}
+
+/* O build empacotado pode descartar radial-gradient CSS depois de um repaint
+   com backdrop-filter. A imagem abaixo e o background do container usam a
+   versao assada do mesmo brilho para manter o visual igual ao dev. */
+.allus-app-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Negativo (não 0) de propósito: fica atrás de QUALQUER conteúdo normal
+     sem precisar forçar os filhos reais a virarem position:relative/z-index
+     próprios — isso já foi tentado (.allus-app-bg > * { z-index: 1 })  e
+     quebrou o sistema de z-index do app inteiro (Z.accountMenu, Z.popover
+     etc. ficavam presos dentro do contexto de empilhamento do pai, então o
+     popup de conta aparecia atrás do histórico mesmo tendo z-index maior). */
+  z-index: -1;
+  pointer-events: none;
+  background: url('../assets/allus-app-bg-glow.svg') no-repeat center / cover;
+  transform: translateZ(0);
 }
 
 /* Marca d'água discreta do símbolo oficial — reservada às telas "de
@@ -66,10 +92,12 @@
 .allus-app-bg.allus-watermark {
   background:
     var(--allus-watermark-image) no-repeat 100% 100% / 300px 300px,
-    radial-gradient(circle at 15% 10%, rgba(236, 220, 1, 0.16), transparent 45%),
-    radial-gradient(circle at 85% 20%, rgba(184, 172, 0, 0.14), transparent 40%),
-    radial-gradient(circle at 50% 90%, rgba(245, 236, 107, 0.14), transparent 50%),
+    url('../assets/allus-app-bg-glow.svg') no-repeat center / cover,
     var(--allus-bg-1);
+}
+
+.allus-app-bg.allus-watermark::before {
+  background: url('../assets/allus-app-bg-glow.svg') no-repeat center / cover;
 }
 
 .allus-titlebar {

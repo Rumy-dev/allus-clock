@@ -47,6 +47,13 @@
   border-radius: var(--allus-radius-lg);
   backdrop-filter: var(--allus-glass-blur);
   -webkit-backdrop-filter: var(--allus-glass-blur);
+  /* Sem isso, o backdrop-filter deste elemento não aplica quando ele é
+     descendente de um ancestral com overflow:hidden + border-radius que
+     não tem sua própria compositing layer (caso do .allus-app-bg, raiz de
+     uma janela Electron transparent:true) — bug/limitação conhecida do
+     Chromium. translateZ(0) força este elemento a ganhar layer própria,
+     restaurando o blur. */
+  transform: translateZ(0);
 }
 
 .allus-app-bg {
@@ -104,3 +111,55 @@
 .allus-status-dot[data-status='Pausado'] { background: var(--allus-status-pausado); }
 .allus-status-dot[data-status='Concluído'] { background: var(--allus-status-concluido); }
 .allus-status-dot[data-status='Interrompido'] { background: var(--allus-status-interrompido); }
+
+/* Sliders de preferências (opacidade do painel flutuante, transparência
+   da janela) — sem isso, <input type="range"> cai no controle nativo
+   azul do Windows/Chromium, destoando do resto da UI. */
+.allus-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--allus-glass-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.allus-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--allus-yellow);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.allus-slider::-webkit-slider-thumb:hover,
+.allus-slider::-webkit-slider-thumb:active {
+  transform: scale(1.15);
+}
+
+.allus-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--allus-glass-border);
+}
+
+.allus-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--allus-yellow);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.allus-slider::-moz-range-thumb:hover,
+.allus-slider::-moz-range-thumb:active {
+  transform: scale(1.15);
+}

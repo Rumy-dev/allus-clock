@@ -319,11 +319,11 @@ export function MainWindow() {
                     </div>
                     <input
                       type="range"
+                      className="allus-slider"
                       min={20}
                       max={100}
                       value={snapshot.floatingPanelOpacity}
                       onChange={(e) => invokeAction('prefs:setFloatingPanelOpacity', { opacity: Number(e.target.value) })}
-                      style={{ width: '100%', cursor: 'pointer' }}
                     />
                   </div>
                   <Toggle
@@ -345,11 +345,11 @@ export function MainWindow() {
                     </div>
                     <input
                       type="range"
+                      className="allus-slider"
                       min={0}
                       max={100}
                       value={snapshot.windowGlassOpacity}
                       onChange={(e) => invokeAction('prefs:setWindowGlassOpacity', { opacity: Number(e.target.value) })}
-                      style={{ width: '100%', cursor: 'pointer' }}
                     />
                   </div>
                 </div>

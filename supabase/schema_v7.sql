@@ -101,3 +101,45 @@ as $$
 $$;
 
 grant execute on function public.report_trend(timestamptz, timestamptz, uuid, uuid, uuid) to authenticated;
+
+-- 3. RPC para "tarefas mais usadas" sem transferir toda a tabela task_logs
+create or replace function public.most_used_tasks(p_user_id uuid, p_limit integer default 3)
+returns table(
+  task_id uuid,
+  project_id uuid,
+  client_id uuid,
+  task_title text,
+  elapsed_seconds bigint,
+  started_at timestamptz,
+  task_count bigint
+)
+language sql
+stable
+as $$
+  with ranked as (
+    select
+      tl.*,
+      count(*) over (partition by tl.task_id) as task_count,
+      row_number() over (
+        partition by tl.task_id
+        order by tl.started_at desc, tl.id desc
+      ) as rn
+    from public.task_logs tl
+    where tl.user_id = p_user_id
+      and tl.task_id is not null
+  )
+  select
+    task_id,
+    project_id,
+    client_id,
+    task_title,
+    elapsed_seconds,
+    started_at,
+    task_count
+  from ranked
+  where rn = 1
+  order by task_count desc, started_at desc
+  limit greatest(coalesce(p_limit, 3), 0);
+$$;
+
+grant execute on function public.most_used_tasks(uuid, integer) to authenticated;

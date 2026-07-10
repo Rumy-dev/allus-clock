@@ -1,0 +1,18 @@
+{
+  "productName": "Allus Focus",
+  "version": "0.2.9",
+  "platform": "darwin",
+  "buildType": "dmg",
+  "targets": [
+    "arm64",
+    "x64"
+  ],
+  "expectedOutputs": [
+    "out/make/dmg/arm64/Allus Focus.dmg",
+    "out/make/dmg/x64/Allus Focus.dmg"
+  ],
+  "notes": [
+    "Versão preparada no Windows; o arquivo .dmg precisa ser gerado em macOS.",
+    "A pasta serve como referência da release atual antes da compilação."
+  ]
+}

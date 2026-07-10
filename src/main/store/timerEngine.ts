@@ -642,42 +642,59 @@ export async function flushBeforeQuit(): Promise<void> {
 export async function loadMostUsedTasks(): Promise<void> {
   try {
     const userId = currentUserId();
-    const { data: allLogs, error } = await supabase
-      .from('task_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .not('task_id', 'is', null) // ignora tarefas avulsas (sem taskId)
-      .order('started_at', { ascending: false }); // mais recentes primeiro
+    const { data, error } = await supabase.rpc('most_used_tasks', {
+      p_user_id: userId,
+      p_limit: 3,
+    });
 
-    if (error || !allLogs) {
-      console.error('[timerEngine] falha ao carregar tarefas mais usadas', error);
+    if (error || !data) {
+      console.warn('[timerEngine] RPC most_used_tasks falhou, usando fallback local', error);
+      const { data: allLogs, error: fallbackError } = await supabase
+        .from('task_logs')
+        .select('id, session_id, task_id, project_id, client_id, user_id, task_title, elapsed_seconds, is_done, started_at, completed_at')
+        .eq('user_id', userId)
+        .not('task_id', 'is', null)
+        .order('started_at', { ascending: false });
+      if (fallbackError || !allLogs) {
+        console.error('[timerEngine] falha ao carregar tarefas mais usadas', fallbackError);
+        return;
+      }
+
+      const taskIdCounts = new Map<string, number>();
+      const taskIdLatest = new Map<string, any>();
+      for (const log of allLogs) {
+        const tid = log.task_id;
+        if (!tid) continue;
+        taskIdCounts.set(tid, (taskIdCounts.get(tid) ?? 0) + 1);
+        if (!taskIdLatest.has(tid)) taskIdLatest.set(tid, log);
+      }
+      const sorted = Array.from(taskIdCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([tid]) => tid);
+      const mostUsedTasks: PomoTaskLog[] = sorted
+        .map((tid) => taskIdLatest.get(tid))
+        .filter((log): log is any => log !== undefined)
+        .map(mapTaskLog);
+      appStore.patch({ recentTasks: mostUsedTasks });
       return;
     }
 
-    // Conta ocorrências por taskId
-    const taskIdCounts = new Map<string, number>();
-    const taskIdLatest = new Map<string, any>(); // último registro de cada taskId
-
-    for (const log of allLogs) {
-      const tid = log.task_id;
-      if (!tid) continue;
-      taskIdCounts.set(tid, (taskIdCounts.get(tid) ?? 0) + 1);
-      if (!taskIdLatest.has(tid)) {
-        taskIdLatest.set(tid, log);
-      }
-    }
-
-    // Ordena por contagem descrescente e pega os 3 mais frequentes
-    const sorted = Array.from(taskIdCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([tid]) => tid);
-
-    // Mapeia o registro mais recente de cada um
-    const mostUsedTasks: PomoTaskLog[] = sorted
-      .map((tid) => taskIdLatest.get(tid))
-      .filter((log): log is any => log !== undefined)
-      .map(mapTaskLog);
+    const mostUsedTasks: PomoTaskLog[] = (data ?? []).map((row: any) =>
+      mapTaskLog({
+        id: row.task_id,
+        session_id: null,
+        task_id: row.task_id,
+        project_id: row.project_id,
+        client_id: row.client_id,
+        user_id: userId,
+        task_title: row.task_title,
+        elapsed_seconds: row.elapsed_seconds ?? 0,
+        is_done: false,
+        started_at: row.started_at,
+        completed_at: null,
+      }),
+    );
 
     appStore.patch({ recentTasks: mostUsedTasks });
   } catch (err) {

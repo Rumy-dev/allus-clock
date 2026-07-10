@@ -33,8 +33,17 @@
 }
 
 .allus-glass {
-  background: var(--allus-glass-bg);
-  border: 1px solid var(--allus-glass-border);
+  /* --allus-glass-bg-dynamic/-border-dynamic são setadas inline nas telas
+     com windowGlassOpacity ajustável (MainWindow/Dashboard/Pulse/
+     TaskCenter/TimeCenter), escalando estes cards junto com o fundo da
+     janela — sem isso, os cards (que cobrem quase toda a área visível,
+     com blur forte por cima) ficavam com opacidade fixa e o slider só
+     afetava as frestas entre eles, quase imperceptível perto do painel
+     flutuante (que não tem essa camada de cards). Em qualquer outro lugar
+     que usa .allus-glass sem setar essas variáveis, cai no visual fixo de
+     sempre.  */
+  background: var(--allus-glass-bg-dynamic, var(--allus-glass-bg));
+  border: 1px solid var(--allus-glass-border-dynamic, var(--allus-glass-border));
   border-radius: var(--allus-radius-lg);
   backdrop-filter: var(--allus-glass-blur);
   -webkit-backdrop-filter: var(--allus-glass-blur);

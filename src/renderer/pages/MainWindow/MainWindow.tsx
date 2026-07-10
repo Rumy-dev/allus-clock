@@ -179,6 +179,8 @@ export function MainWindow() {
           flexDirection: 'column',
           '--allus-watermark-image': `url(${allusWatermark})`,
           '--allus-app-bg-color': `rgba(0, 0, 1, ${glassAlpha})`,
+          '--allus-glass-bg-dynamic': `rgba(255, 255, 255, ${0.06 * glassAlpha})`,
+          '--allus-glass-border-dynamic': `rgba(255, 255, 255, ${0.14 * glassAlpha})`,
         } as CSSProperties
       }
     >

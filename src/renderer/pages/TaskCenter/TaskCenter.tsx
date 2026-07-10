@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
+import allusWatermark from '../../assets/allus-focus-watermark.svg';
 import { useAppState } from '../../useAppState';
 import { Titlebar } from '../../components/Titlebar';
 import { ToastHost } from '../../components/ToastHost';
@@ -224,12 +225,13 @@ export function TaskCenter() {
 
   return (
     <div
-      className="allus-app-bg"
+      className="allus-app-bg allus-watermark"
       style={
         {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          '--allus-watermark-image': `url(${allusWatermark})`,
         } as CSSProperties
       }
     >

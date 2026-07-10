@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
+import allusWatermark from '../../assets/allus-focus-watermark.svg';
 import { Titlebar } from '../../components/Titlebar';
 import { DateFilterBar } from '../../components/DateFilterBar';
 import { ToastHost } from '../../components/ToastHost';
@@ -70,12 +71,13 @@ export function TimeCenter() {
 
   return (
     <div
-      className="allus-app-bg"
+      className="allus-app-bg allus-watermark"
       style={
         {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          '--allus-watermark-image': `url(${allusWatermark})`,
         } as CSSProperties
       }
     >

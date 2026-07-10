@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import allusFocusIcon from '../../assets/allus-focus-icon.svg';
+import allusWatermark from '../../assets/allus-focus-watermark.svg';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -18,14 +19,17 @@ export function Login() {
 
   return (
     <div
-      className="allus-app-bg allus-titlebar"
-      style={{
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
+      className="allus-app-bg allus-titlebar allus-watermark"
+      style={
+        {
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          '--allus-watermark-image': `url(${allusWatermark})`,
+        } as React.CSSProperties
+      }
     >
       <form
         onSubmit={handleSubmit}

@@ -315,7 +315,7 @@ export function MainWindow() {
                     <input
                       type="range"
                       className="allus-slider"
-                      min={20}
+                      min={0}
                       max={100}
                       value={snapshot.floatingPanelOpacity}
                       onChange={(e) => invokeAction('prefs:setFloatingPanelOpacity', { opacity: Number(e.target.value) })}

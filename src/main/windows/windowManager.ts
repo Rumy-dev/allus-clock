@@ -179,9 +179,16 @@ export function showLogin(): void {
     resizable: false,
     frame: false,
     transparent: true,
+    // Fallback opaco pro frame transparente que o Windows/Chromium pode
+    // compositar antes do primeiro paint do React chegar — sem isso, em
+    // builds empacotados (processo "frio") esse frame mostra o desktop por
+    // trás da janela em vez do fundo sólido do app (ver showMainWindow).
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   loadPage(win, 'login');
   win.on('closed', () => {
     windows.login = null;
@@ -269,9 +276,18 @@ export function showMainWindow(): void {
     minHeight: 560,
     frame: false,
     transparent: true,
+    // Fallback opaco pro frame transparente que o Windows/Chromium pode
+    // compositar antes do primeiro paint do React chegar — sem isso, em
+    // builds empacotados (processo "frio", Squirrel) esse frame mostra o
+    // desktop/wallpaper por trás da janela em vez do fundo sólido do app.
+    // Em dev o processo já está "aquecido" e isso normalmente não aparece,
+    // por isso o bug só se manifestava no instalado.
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   loadPage(win, 'main');
   hideInsteadOfClose(win);
   win.on('closed', () => {
@@ -317,6 +333,11 @@ export function showFloatingPanel(): void {
     y: undefined,
     frame: false,
     transparent: true,
+    // Mesmo fallback opaco das outras janelas (ver showMainWindow) — só
+    // evita o flash de wallpaper antes do primeiro paint; a opacidade
+    // ajustável do painel continua controlada pelo CSS (floatingPanelOpacity).
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     resizable: !sizeLocked,
     minWidth: 100,
@@ -325,6 +346,7 @@ export function showFloatingPanel(): void {
     skipTaskbar: true,
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   loadPage(win, 'floating');
@@ -412,9 +434,12 @@ export function showTaskCenter(): void {
     minHeight: 480,
     frame: false,
     transparent: true,
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   loadPage(win, 'taskCenter');
   hideInsteadOfClose(win);
   win.on('closed', () => {
@@ -436,9 +461,12 @@ export function showTimeCenter(): void {
     minHeight: 480,
     frame: false,
     transparent: true,
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   loadPage(win, 'timeCenter');
   hideInsteadOfClose(win);
   win.on('closed', () => {
@@ -460,9 +488,12 @@ export function showDashboard(): void {
     minHeight: 600,
     frame: false,
     transparent: true,
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   loadPage(win, 'dashboard');
   hideInsteadOfClose(win);
   win.on('closed', () => {
@@ -484,9 +515,12 @@ export function showPulse(): void {
     minHeight: 600,
     frame: false,
     transparent: true,
+    backgroundColor: '#000001',
+    show: false,
     icon: iconPath(),
     webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
   });
+  win.once('ready-to-show', () => win.show());
   loadPage(win, 'pulse');
   hideInsteadOfClose(win);
   win.on('closed', () => {

@@ -45,6 +45,10 @@ const config: ForgeConfig = {
     new PublisherGithub({
       repository: { owner: 'Rumy-dev', name: 'allus-clock' },
       prerelease: false,
+      // Por padrão o publisher cria a release como draft (invisível pra API
+      // pública e pro auto-updater) — precisamos explicitamente publicar de
+      // verdade pra update-electron-app conseguir enxergá-la.
+      draft: false,
     }),
   ],
   plugins: [

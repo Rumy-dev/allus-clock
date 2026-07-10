@@ -333,10 +333,15 @@ export function showFloatingPanel(): void {
     y: undefined,
     frame: false,
     transparent: true,
-    // Mesmo fallback opaco das outras janelas (ver showMainWindow) — só
-    // evita o flash de wallpaper antes do primeiro paint; a opacidade
-    // ajustável do painel continua controlada pelo CSS (floatingPanelOpacity).
-    backgroundColor: '#000001',
+    // ATENÇÃO: diferente das outras janelas (que usam '#000001' opaco pra
+    // evitar o vazamento de wallpaper) — o painel flutuante é a ÚNICA
+    // janela com transparência REAL variável (floatingPanelOpacity pode
+    // chegar a 0%). Um backgroundColor opaco aqui faz o Chromium misturar
+    // o rgba(...) do CSS contra esse preto opaco em vez do desktop de
+    // verdade por trás, deixando o slider "não fazer nada" perto de 0%.
+    // '#00000000' (alpha zero, mesmo valor da Splash) é o fallback certo
+    // pra quem precisa de transparência real.
+    backgroundColor: '#00000000',
     show: false,
     icon: iconPath(),
     resizable: !sizeLocked,

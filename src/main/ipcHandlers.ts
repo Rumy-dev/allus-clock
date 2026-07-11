@@ -11,6 +11,15 @@ import * as windowManager from './windows/windowManager';
 import { restartForUpdate } from './updater';
 import type { IpcInvokeMap } from '../shared/ipc-contract';
 
+// Preload/renderer roda sandboxed e o canal só é acessível via contextBridge,
+// mas contextIsolation não é uma garantia absoluta contra um renderer
+// comprometido — validar forma dos argumentos nos handlers mais sensíveis
+// (auth, promoção de admin) evita que um payload malformado chegue direto ao
+// Supabase ou vaze exceptions com detalhes internos.
+function isNonEmptyString(v: unknown): v is string {
+  return typeof v === 'string' && v.trim().length > 0;
+}
+
 function handle<K extends keyof IpcInvokeMap>(
   channel: K,
   fn: (args: Parameters<IpcInvokeMap[K]>[0]) => ReturnType<IpcInvokeMap[K]> | Promise<ReturnType<IpcInvokeMap[K]>>,
@@ -53,17 +62,33 @@ async function adminCall<T>(path: string, payload?: unknown, method: 'GET' | 'PO
 }
 
 export function registerIpcHandlers(): void {
-  handle('auth:signIn', async ({ email, password }) => authManager.signIn(email, password));
+  handle('auth:signIn', async ({ email, password }) => {
+    if (!isNonEmptyString(email) || !isNonEmptyString(password)) {
+      return { ok: false, error: 'E-mail e senha são obrigatórios.' };
+    }
+    return authManager.signIn(email, password);
+  });
   handle('auth:signOut', async () => {
     await authManager.signOut();
     windowManager.closeAllAppWindows();
     windowManager.showLogin();
   });
-  handle('auth:changePassword', async ({ newPassword }) => authManager.changePassword(newPassword));
-  handle('auth:requestPasswordReset', async ({ email }) => authManager.requestPasswordReset(email));
-  handle('auth:confirmPasswordReset', async ({ email, code, newPassword }) =>
-    authManager.confirmPasswordReset(email, code, newPassword),
-  );
+  handle('auth:changePassword', async ({ newPassword }) => {
+    if (!isNonEmptyString(newPassword) || newPassword.length < 6) {
+      return { ok: false, error: 'Senha precisa ter ao menos 6 caracteres.' };
+    }
+    return authManager.changePassword(newPassword);
+  });
+  handle('auth:requestPasswordReset', async ({ email }) => {
+    if (!isNonEmptyString(email)) return { ok: false, error: 'E-mail é obrigatório.' };
+    return authManager.requestPasswordReset(email);
+  });
+  handle('auth:confirmPasswordReset', async ({ email, code, newPassword }) => {
+    if (!isNonEmptyString(email) || !isNonEmptyString(code) || !isNonEmptyString(newPassword) || newPassword.length < 6) {
+      return { ok: false, error: 'Dados inválidos para redefinir a senha.' };
+    }
+    return authManager.confirmPasswordReset(email, code, newPassword);
+  });
 
   handle('timer:playPause', async () => {
     const before = appStore.getSnapshot().activeSession?.status;
@@ -218,10 +243,44 @@ export function registerIpcHandlers(): void {
   handle('window:openFloating', async () => {
     windowManager.showFloatingPanel();
   });
-  handle('admin:members:list', async () => adminCall('admin-members', undefined, 'GET'));
-  handle('admin:members:invite', async (args) => adminCall('admin-members', { action: 'invite', ...args }));
-  handle('admin:members:setRole', async (args) => adminCall('admin-members', { action: 'set-role', ...args }));
-  handle('admin:members:setPassword', async (args) => adminCall('admin-members', { action: 'set-password', ...args }));
+  // Checagem local é só defesa em profundidade / feedback rápido — a Edge
+  // Function (admin-members) já valida role=admin server-side com o token
+  // real, então mesmo se isso aqui for contornado nada de fato muda.
+  function requireAdmin(): void {
+    const state = authManager.getState();
+    if (state.status !== 'signedIn' || state.profile.role !== 'admin') {
+      throw new Error('Acesso negado: apenas admins podem gerenciar membros.');
+    }
+  }
+
+  handle('admin:members:list', async () => {
+    requireAdmin();
+    return adminCall('admin-members', undefined, 'GET');
+  });
+  handle('admin:members:invite', async (args) => {
+    requireAdmin();
+    if (!isNonEmptyString(args.email) || !isNonEmptyString(args.password) || args.password.length < 6) {
+      throw new Error('E-mail e senha (mín. 6 caracteres) são obrigatórios.');
+    }
+    if (args.role !== 'member' && args.role !== 'admin') {
+      throw new Error('Role inválida.');
+    }
+    return adminCall('admin-members', { action: 'invite', ...args });
+  });
+  handle('admin:members:setRole', async (args) => {
+    requireAdmin();
+    if (!isNonEmptyString(args.userId)) throw new Error('userId é obrigatório.');
+    if (args.role !== 'member' && args.role !== 'admin') throw new Error('Role inválida.');
+    return adminCall('admin-members', { action: 'set-role', ...args });
+  });
+  handle('admin:members:setPassword', async (args) => {
+    requireAdmin();
+    if (!isNonEmptyString(args.userId)) throw new Error('userId é obrigatório.');
+    if (!isNonEmptyString(args.password) || args.password.length < 6) {
+      throw new Error('Senha precisa ter ao menos 6 caracteres.');
+    }
+    return adminCall('admin-members', { action: 'set-password', ...args });
+  });
 
   handle('window:toggleTaskCenter', async () => windowManager.toggleTaskCenter());
   handle('window:toggleTimeCenter', async () => windowManager.toggleTimeCenter());
@@ -243,6 +302,7 @@ export function registerIpcHandlers(): void {
     }
   });
   ipcMain.handle('window:openDevTools', (event) => {
+    if (app.isPackaged) return;
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
       win.webContents.toggleDevTools();

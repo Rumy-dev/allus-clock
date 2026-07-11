@@ -11,6 +11,29 @@ type AdminAction =
   | { action: 'set-role'; userId: string; role: 'member' | 'admin' }
   | { action: 'set-password'; userId: string; password: string };
 
+// Rate limit best-effort por usuário admin, em memória: sobrevive só enquanto
+// a instância da function ficar "quente" (Deno Deploy recicla instâncias),
+// então não é garantia absoluta contra abuso distribuído — mas barra o caso
+// comum de um token vazado/comprometido sendo usado pra criar/alterar contas
+// em massa dentro de uma janela curta. Ações sensíveis (invite, set-password,
+// set-role) ficam limitadas a 10 chamadas / 5 min por admin.
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const RATE_LIMIT_MAX = 10;
+const rateLimitHits = new Map<string, number[]>();
+
+function checkRateLimit(adminUserId: string): void {
+  const now = Date.now();
+  const hits = (rateLimitHits.get(adminUserId) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  if (hits.length >= RATE_LIMIT_MAX) {
+    throw new Response(
+      JSON.stringify({ error: 'Muitas alterações em pouco tempo. Aguarde alguns minutos.' }),
+      { status: 429, headers: corsHeaders },
+    );
+  }
+  hits.push(now);
+  rateLimitHits.set(adminUserId, hits);
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -52,7 +75,7 @@ async function getAdminClient(authHeader: string | null) {
     throw new Response(JSON.stringify({ error: 'Acesso negado.' }), { status: 403, headers: corsHeaders });
   }
 
-  return adminClient;
+  return { adminClient, adminUserId: userData.user.id };
 }
 
 async function listMembers(client: ReturnType<typeof createClient>) {
@@ -128,7 +151,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const client = await getAdminClient(req.headers.get('Authorization'));
+    const { adminClient: client, adminUserId } = await getAdminClient(req.headers.get('Authorization'));
     if (req.method === 'GET') {
       const members = await listMembers(client);
       return json({ ok: true, members });
@@ -136,6 +159,9 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = (await req.json()) as AdminAction;
+      if (body.action === 'invite' || body.action === 'set-role' || body.action === 'set-password') {
+        checkRateLimit(adminUserId);
+      }
       if (body.action === 'invite') {
         await inviteMember(client, body);
         return json({ ok: true });

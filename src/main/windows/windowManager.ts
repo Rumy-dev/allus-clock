@@ -125,13 +125,34 @@ function loadPage(win: BrowserWindow, page: string): void {
 // Cmd+T nova aba) sempre que o Allus Focus estava rodando em segundo
 // plano, o que é o tempo todo (ele vive na bandeja). before-input-event só
 // dispara quando a própria janela do Allus Focus está em foco.
+// Bloqueia navegação/popups pra fora do app: sem isso, um link ou window.open
+// disparado a partir de conteúdo renderizado (ex.: dados vindos do Supabase)
+// poderia abrir ou navegar pra qualquer URL arbitrária dentro do processo do
+// Electron. Dev server local (Vite) é a única exceção permitida.
+function isAllowedNavigationUrl(url: string): boolean {
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL && url.startsWith(MAIN_WINDOW_VITE_DEV_SERVER_URL)) return true;
+  return url.startsWith('file://');
+}
+
+function attachNavigationGuards(win: BrowserWindow): void {
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigationUrl(url)) {
+      event.preventDefault();
+    }
+  });
+}
+
 function attachWindowShortcuts(win: BrowserWindow): void {
+  attachNavigationGuards(win);
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
     const mod = input.control || input.meta;
 
     if (input.key === 'F12') {
-      win.webContents.toggleDevTools();
+      // DevTools expõe estado em memória (sessão, dados carregados) pra
+      // qualquer um com acesso físico à máquina — só liberado em dev.
+      if (!app.isPackaged) win.webContents.toggleDevTools();
       event.preventDefault();
       return;
     }
@@ -245,7 +266,7 @@ export function showLogin(): void {
     // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
     // backdrop-filter).
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   revealWhenReady(win);
   loadPage(win, 'login');
@@ -291,7 +312,7 @@ export function showSplash(onShown?: () => void): void {
     alwaysOnTop: true,
     hasShadow: false,
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
   // show só depois de 'ready-to-show': evita o flash preto de um frame que
@@ -346,7 +367,7 @@ export function showMainWindow(onShown?: () => void, showImmediately = true): vo
     // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
     // backdrop-filter).
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.once('ready-to-show', () => {
     if (showImmediately) revealWindow(win);
@@ -448,7 +469,7 @@ export function showFloatingPanel(): void {
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -590,7 +611,7 @@ export function showTaskCenter(shouldReveal = true): void {
     // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
     // backdrop-filter).
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   revealWhenReady(win, shouldReveal);
   loadPage(win, 'taskCenter');
@@ -624,7 +645,7 @@ export function showTimeCenter(shouldReveal = true): void {
     // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
     // backdrop-filter).
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   revealWhenReady(win, shouldReveal);
   loadPage(win, 'timeCenter');
@@ -658,7 +679,7 @@ export function showDashboard(shouldReveal = true): void {
     // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
     // backdrop-filter).
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   revealWhenReady(win, shouldReveal);
   loadPage(win, 'dashboard');
@@ -692,7 +713,7 @@ export function showPulse(shouldReveal = true): void {
     // showFloatingPanel). Efeito vidro fica só no CSS (.allus-glass,
     // backdrop-filter).
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   revealWhenReady(win, shouldReveal);
   loadPage(win, 'pulse');
@@ -719,7 +740,7 @@ export function showMembers(shouldReveal = true): void {
     icon: iconPath(),
     hasShadow: false,
     show: false,
-    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false },
+    webPreferences: { preload: preloadPath(), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   revealWhenReady(win, shouldReveal);
   loadPage(win, 'members');

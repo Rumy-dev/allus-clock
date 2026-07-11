@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, session, Menu } from 'electron';
 import started from 'electron-squirrel-startup';
 import { authManager } from './auth/authManager';
 import { appStore } from './store/appStore';
@@ -111,7 +111,53 @@ function scheduleSecondaryPreloadDuringSplash(): void {
   }, 3200);
 }
 
+// CSP aplicada globalmente a todas as janelas via header de resposta (em vez
+// de <meta> no HTML) — cobre toda navegação/reload sem precisar duplicar a
+// tag em cada página. connect-src cobre a API do Supabase (REST + Realtime
+// via wss); em dev também libera o dev server local do Vite (HTTP + HMR via
+// ws) já que ele roda em localhost com porta variável.
+function applyContentSecurityPolicy(): void {
+  const isDev = !app.isPackaged;
+  const connectSrc = ["'self'", 'https://*.supabase.co', 'wss://*.supabase.co'];
+  if (isDev) {
+    connectSrc.push('http://localhost:*', 'ws://localhost:*');
+  }
+  const csp = [
+    "default-src 'self'",
+    // Em dev o Vite injeta um script inline (preamble de HMR/React Refresh)
+    // no index.html antes de carregar os módulos — sem 'unsafe-inline' nessa
+    // fase, o bootstrap inteiro é bloqueado e a janela abre em branco. Build
+    // de produção não tem scripts inline (tudo em arquivos .js externos), só
+    // precisa do 'self'.
+    `script-src 'self'${isDev ? " 'unsafe-eval' 'unsafe-inline'" : ''}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    `connect-src ${connectSrc.join(' ')}`,
+    "object-src 'none'",
+    "base-uri 'none'",
+  ].join('; ');
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp],
+      },
+    });
+  });
+}
+
 app.whenReady().then(async () => {
+  applyContentSecurityPolicy();
+  // Sem menu de app customizado, o Electron usa o menu padrão — no macOS ele
+  // fica sempre visível na barra superior (diferente do Windows/Linux, onde
+  // as janelas frame:false não mostram barra nenhuma) e inclui "Toggle
+  // Developer Tools" (Cmd+Option+I), abrindo DevTools em produção mesmo com
+  // o bloqueio de F12/IPC. setApplicationMenu(null) em prod reduz o macOS ao
+  // menu mínimo (nome do app: About/Hide/Quit), sem Edit/View/DevTools.
+  if (app.isPackaged) {
+    Menu.setApplicationMenu(null);
+  }
   // splashStartedAt só é marcado quando a janela fica de fato visível
   // (ready-to-show) — ver comentário em windowManager.showSplash. Contar a
   // partir da criação da janela subtraía o tempo de carregamento do

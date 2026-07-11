@@ -18,10 +18,38 @@ const config: ForgeConfig = {
     osxSign: {
       optionsForFile: () => ({ entitlements: 'assets/entitlements.plist' }),
     },
+    // Sem notarização, o Gatekeeper do macOS 10.15+ bloqueia/alerta o app
+    // mesmo assinado ("Apple não pôde verificar..."). Opt-in via env vars
+    // (Apple ID + app-specific password + team ID, gerados em
+    // appleid.apple.com) — sem eles configurados, build local segue como
+    // hoje (assinado, não notarizado).
+    ...(process.env.APPLE_ID && process.env.APPLE_ID_PASSWORD && process.env.APPLE_TEAM_ID
+      ? {
+          osxNotarize: {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_ID_PASSWORD,
+            teamId: process.env.APPLE_TEAM_ID,
+          },
+        }
+      : {}),
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({ setupIcon: 'assets/icon.ico' }),
+    new MakerSquirrel({
+      setupIcon: 'assets/icon.ico',
+      // Assinatura de código do instalador/exe Windows. Sem isso o Windows
+      // SmartScreen mostra "editor desconhecido" e o binário pode ser
+      // adulterado sem detecção. Fica opt-in via env vars — sem certificado
+      // configurado, o build segue funcionando sem assinar (comportamento
+      // atual inalterado). Certificado .pfx (code signing, ex.: DigiCert/
+      // Sectigo) + senha vão em CI como secrets, nunca commitados.
+      ...(process.env.WINDOWS_CERT_FILE
+        ? {
+            certificateFile: process.env.WINDOWS_CERT_FILE,
+            certificatePassword: process.env.WINDOWS_CERT_PASSWORD,
+          }
+        : {}),
+    }),
     new MakerDMG({
       // Nome do volume sem espaço: "hdiutil detach" falha de forma
       // intermitente em runners do GitHub Actions quando o volume montado

@@ -1,3 +1,13 @@
+<p align="center">
+  <img src="assets/icon.png" width="96" alt="Allus Focus" />
+</p>
+
+<h1 align="center">Allus Focus</h1>
+
+<p align="center">
+  Timer de foco/Pomodoro com rastreamento de tempo por cliente, projeto e tarefa — compartilhado pelo time.
+</p>
+
 ## Como instalar
 
 Baixe a versão mais recente aqui: **[github.com/Rumy-dev/allus-clock/releases/latest](https://github.com/Rumy-dev/allus-clock/releases/latest)**
@@ -34,4 +44,4 @@ O app se atualiza sozinho: sempre que uma versão nova é publicada, ele baixa e
 
 ## Suporte
 
-Dúvidas ou problemas: fale com o time Allus
+Dúvidas ou problemas: fale com o time Allus — contato@allus.com.br

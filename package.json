@@ -1,7 +1,7 @@
 {
   "name": "allus-focus",
   "productName": "Allus Focus",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Timer de foco/Pomodoro com rastreamento de tempo por cliente/projeto/tarefa, compartilhado pelo time.",
   "repository": {
     "type": "git",

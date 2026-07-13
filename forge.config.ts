@@ -115,6 +115,13 @@ const config: ForgeConfig = {
     // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
+      // Flipar fuses reescreve bytes no binário do Electron Framework,
+      // invalidando a assinatura ad-hoc original dele. O plugin só resigna
+      // automaticamente quando NÃO há osxSign configurado — como temos
+      // osxSign (pros entitlements), essa proteção fica desligada por
+      // padrão e o app crasha no Mac (SIGKILL Code Signature Invalid) ao
+      // abrir. Forçar aqui resigna o binário logo após flipar os fuses.
+      resetAdHocDarwinSignature: true,
       [FuseV1Options.RunAsNode]: false,
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,

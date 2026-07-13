@@ -89,16 +89,24 @@ export function MainWindow() {
   const [showFloatingPrefs, setShowFloatingPrefs] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const quickAddWrapRef = useRef<HTMLDivElement | null>(null);
+  const [historyRefreshTick, setHistoryRefreshTick] = useState(0);
+  const [historyRefreshing, setHistoryRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    window.allus.invoke('session:list', { range: { filter: sessionFilter } }).then((data) => {
-      if (!cancelled) setSessions(data);
-    });
+    setHistoryRefreshing(true);
+    window.allus
+      .invoke('session:list', { range: { filter: sessionFilter } })
+      .then((data) => {
+        if (!cancelled) setSessions(data);
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryRefreshing(false);
+      });
     return () => {
       cancelled = true;
     };
-  }, [sessionFilter, refreshKey]);
+  }, [sessionFilter, refreshKey, historyRefreshTick]);
 
   useEffect(() => {
     setHistoryPage(1);
@@ -919,6 +927,14 @@ export function MainWindow() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
             <div style={{ fontSize: 12, letterSpacing: 1, color: 'var(--allus-text-muted)' }}>HISTÓRICO</div>
             <div style={{ flex: 1 }} />
+            <button
+              style={historyRefreshButtonStyle}
+              onClick={() => setHistoryRefreshTick((tick) => tick + 1)}
+              disabled={historyRefreshing}
+              title="Atualizar histórico"
+            >
+              {historyRefreshing ? 'Atualizando...' : '↻ Atualizar'}
+            </button>
             <DateFilterBar value={sessionFilter} onChange={setSessionFilter} />
           </div>
           <div style={{ maxHeight: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1069,6 +1085,18 @@ const iconGhostButtonStyle: React.CSSProperties = {
   background: 'transparent',
   color: 'var(--allus-text-muted)',
   fontSize: 12,
+};
+
+const historyRefreshButtonStyle: React.CSSProperties = {
+  minHeight: 28,
+  padding: '5px 11px',
+  borderRadius: 10,
+  border: '1px solid rgba(236, 220, 1, 0.22)',
+  background: 'rgba(255,255,255,0.06)',
+  color: 'var(--allus-text-primary)',
+  fontSize: 12,
+  fontWeight: 700,
+  whiteSpace: 'nowrap',
 };
 
 const dotStyle: React.CSSProperties = {

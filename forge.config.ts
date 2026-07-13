@@ -81,6 +81,10 @@ const config: ForgeConfig = {
       // pública e pro auto-updater) — precisamos explicitamente publicar de
       // verdade pra update-electron-app conseguir enxergá-la.
       draft: false,
+      // Sem isso, se já existir um asset com o mesmo nome na release (ex.:
+      // rerodar o build manualmente pra mesma versão), o publisher pula o
+      // upload em silêncio e o job aparece como sucesso sem trocar nada.
+      force: true,
     }),
   ],
   plugins: [

@@ -162,7 +162,15 @@ export function registerIpcHandlers(): void {
 
   handle('report:query', async ({ range }) => reportBuilder.queryReport(range, ownUserIdIfNotAdmin()));
   handle('report:exportCsv', async ({ range }) => reportBuilder.exportCsv(range, ownUserIdIfNotAdmin()));
-  handle('session:list', async ({ range }) => reportBuilder.querySessions(range, ownUserIdIfNotAdmin()));
+  // Painel "HISTÓRICO" da MainWindow é sempre pessoal — a visão de equipe já
+  // existe separadamente no Dashboard (com rótulo explícito "equipe completa").
+  // Ignorar role aqui evita que uma conta admin veja/mexa nas sessões de outra
+  // pessoa sem perceber (era possível excluir sessão alheia pelo botão ✕).
+  handle('session:list', async ({ range }) => {
+    const state = authManager.getState();
+    if (state.status !== 'signedIn') throw new Error('Não autenticado.');
+    return reportBuilder.querySessions(range, state.profile.id);
+  });
   handle('dashboard:trend', async ({ range, clientId, projectId, userId }) =>
     reportBuilder.queryTrend(range, { clientId, projectId, userId: ownUserIdIfNotAdmin() ?? userId }),
   );

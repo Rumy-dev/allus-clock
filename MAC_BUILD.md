@@ -71,8 +71,57 @@ Isso elimina o aviso do Gatekeeper e permite habilitar o GitHub Actions
 pra assinar + notarizar automaticamente também.
 
 ## Arquivos relevantes
-- `forge.config.ts` — MakerDMG, osxSign, entitlements
+- `forge.config.ts` — MakerDMG, osxSign, entitlements, publisher, fuses
 - `assets/entitlements.plist` — permissões do app (tray, notificações, arquivos)
 - `assets/info.plist` — configurações macOS (Info.plist estendido)
-- `.github/workflows/build-mac.yml` — pronto, aguardando liberação da conta
+- `.github/workflows/build-mac.yml` — build + publish automático via macos-latest
 - `Allus-Clock-Build-Mac.pdf` — instruções pra quem for gerar o build
+
+## Bugs já encontrados e corrigidos (histórico, v3.0.6)
+
+Documentado aqui pra não perder o contexto se precisar mexer de novo nessa
+área. Todos corrigidos entre os commits `a98e8b9` e `2f6ad1c`.
+
+1. **`.dmg` com conteúdo errado.** `MakerDMG.contents` estava com um array
+   fixo e `path: ''` pro app — `electron-installer-dmg` só resolve o caminho
+   real do app quando `contents` é passado como **função** que recebe
+   `opts.appPath`. Com array fixo, empacotava a pasta errada.
+
+2. **Republicar não sobrescrevia asset.** `PublisherGithub` pula o upload em
+   silêncio se já existe um asset com o mesmo nome na release — precisa
+   `force: true` pra garantir que reruns realmente substituam o `.dmg`/`.exe`
+   antigo.
+
+3. **Crash no launch em Apple Silicon (`SIGKILL Code Signature Invalid`).**
+   `FusesPlugin` reescreve bytes do binário do Electron Framework, invalidando
+   a assinatura ad-hoc original. A proteção `resetAdHocDarwinSignature` do
+   plugin só liga sozinha quando **não** há `osxSign` configurado — como
+   temos (pros entitlements), precisa ser forçada manualmente:
+   `resetAdHocDarwinSignature: true` no `FusesPlugin`.
+
+4. **Login falha só no Mac ("Cannot coerce the result to a single JSON
+   object" / perfil não carrega, mesma conta funcionando no Windows).**
+   Causa: `safeStorage.isEncryptionAvailable()` (Keychain via Electron)
+   retornou `false` num Mac com macOS muito recente (26.5) — provável gap de
+   compatibilidade entre Electron 43.x e essa versão do macOS (ainda não
+   existe Electron 44 estável pra testar se corrige; monitorar releases
+   futuras do Electron). Sem Keychain, a sessão do Supabase nunca persistia,
+   e o supabase-js manda requests sem o header de autenticação quando não
+   acha sessão no storage — o RLS então esconde os dados como se ninguém
+   estivesse logado. Fix em `src/main/supabase/secureStorage.ts`: quando o
+   Keychain/DPAPI falha, cai num fallback que gera e guarda uma chave
+   AES-256-GCM própria (arquivo com permissão `0o600`) em vez de desistir de
+   persistir a sessão. Continua criptografado em repouso, só não depende mais
+   do SO. Tem log de depuração ativo em `debug-auth.log` (pasta de dados do
+   app) pra confirmar se esse caso voltar a acontecer — remover esse log
+   depois de um tempo estável sem reincidência.
+
+## Gatekeeper ("app corrompido"/"desenvolvedor não identificado")
+
+Sem Developer ID Apple, isso reaparece a **cada novo `.dmg` baixado** (não é
+bug, é o macOS marcando qualquer download não notarizado). Precisa sempre:
+```bash
+xattr -cr "/Applications/Allus Focus.app"
+```
+seguido de clique direito → Abrir. Isso vai continuar acontecendo até
+notarizar o app (ver seção acima, "Quando tiver certificado Apple").
